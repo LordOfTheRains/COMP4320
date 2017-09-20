@@ -87,6 +87,7 @@ void ServerUDP::run(){
     }else{
       string resp = getResponse(&req);
       //then send the response message back to sender;
+      sendto(this->sock, resp, strlen(resp), 0, (struct sockaddr FAR *) &their_addr, addr_len);
     }
   }
   close(this->sock);

@@ -9,3 +9,9 @@ all: UDPServerDisplay.o ServerUDP.o
 
 clean:
 	    rm -rf *o all
+
+run_server:
+	   ./USDisplay 10017
+
+run_client:
+		python ClientUDP.py 0.0.0.0 10017
