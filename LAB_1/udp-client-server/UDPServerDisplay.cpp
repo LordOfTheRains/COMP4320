@@ -54,6 +54,7 @@ int main(int argc, char *argv[]) // _M1
 		puts("error configuring udp server \n");
 		return 0;
 	}else{
+		puts("server started... \n");
 		server.run();
 	}
 }

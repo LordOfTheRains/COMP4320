@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
-
+#include <cstring>
 #include <ServerUDP.h>
 
 using namespace std;
@@ -47,7 +47,12 @@ void ServerUDP::run(){
 	struct sockaddr_storage their_addr;
   struct addrinfo hints, *clients, *client;
 	socklen_t addr_len;
-  while (0){ 	// _M2
+  memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_UNSPEC; // set to AF_INET to force IPv4
+	hints.ai_socktype = SOCK_DGRAM;
+	hints.ai_flags = AI_PASSIVE; // use my IP
+
+  while (1){ 	// _M2
     addr_len = sizeof their_addr;
 
     if ((rv = getaddrinfo(NULL, to_string(this->port).c_str(), &hints, &clients)) != 0) {
@@ -86,8 +91,9 @@ void ServerUDP::run(){
       printf("\n >>>> invalid request:...\n");
     }else{
       string resp = getResponse(&req);
+      puts("sending response");
       //then send the response message back to sender;
-      sendto(this->sock, resp, strlen(resp), 0, (struct sockaddr FAR *) &their_addr, addr_len);
+      sendto(this->sock, resp.c_str(), resp.size(), 0,  (struct sockaddr *)&their_addr, addr_len);
     }
   }
   close(this->sock);
@@ -219,4 +225,5 @@ void ServerUDP::display(char *Buffer, int length){
     printf("\n");
    }
    printf("\n\n");
+   return;
 }
