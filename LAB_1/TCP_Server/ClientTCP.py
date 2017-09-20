@@ -35,7 +35,7 @@ class ClientTCP:
 		self.sendMessage(80, s)
 		resp = self.receiveMessage(1024)
 		resTML, resRid = struct.unpack('!HH', resp[:struct.calcsize('!HH')])
-      		rans = str(resp[4:])
+      		resAns = str(resp[4:])
 
 		return resTML, resRid, resAns
 
@@ -44,7 +44,7 @@ class ClientTCP:
 		self.sendMessage(10, s)
 		resp = self.receiveMessage(1024)
 		resTML, resRid = struct.unpack('!HH', resp[:struct.calcsize('!HH')])
-      		rans = str(resp[4:])
+      		resAns = str(resp[4:])
 
 		return resTML, resRid, resAns
 
