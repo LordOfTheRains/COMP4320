@@ -47,6 +47,7 @@ void ServerUDP::run(){
 	struct sockaddr_storage their_addr;
   struct addrinfo hints, *clients, *client;
 	socklen_t addr_len;
+
   memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC; // set to AF_INET to force IPv4
 	hints.ai_socktype = SOCK_DGRAM;
@@ -61,8 +62,7 @@ void ServerUDP::run(){
 	  }
     // loop through all the results and bind to the first for now,
     // should implement new thread or process for multiple active socket bind
-    for(client = clients;client != NULL;
-      client = client->ai_next) {
+    for(client = clients;client != NULL;client = client->ai_next) {
 
   		if ((client_sock = socket(client->ai_family, client->ai_socktype,
   				client->ai_protocol)) == -1) {
@@ -78,6 +78,12 @@ void ServerUDP::run(){
 		    break;
 	  }
     // store data received ffrom client socket in buf and print it
+    if (client == NULL) {
+      fprintf(stderr, "listener: failed to bind socket\n");
+      return;
+    }
+	   freeaddrinfo(clients);
+
     if ((numbytes = recvfrom(this->sock, buf, MAXBUFLEN-1 , 0,
            (struct sockaddr *)&their_addr, &addr_len)) == -1) {
       perror("recvfrom");
