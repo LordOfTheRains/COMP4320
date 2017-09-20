@@ -48,6 +48,8 @@ struct message
 	unsigned long result; 
 } __attribute__((__packed__)); 
 
+typedef struct message message_t; 
+
 int cLength(char *msg) {
 	int consonants = 0;
 	int tml = msg[0]; 
@@ -149,19 +151,19 @@ message_t disemvowel(char *msg) {
 	}
 	
 	message_t message; 
-	message[0] = result[0];
-	message[1] = reuslt[1];
+	message.tml = htons(result[0]);
+	message.requestID = htons(result[1]);
 
 	unsigned long l = 0;
 	for (int i = 3; i < tml; ++i) {
 		l = l | ((unsigned long) result[i] << (8*i)); 
 	}
-	message[2] = l;	
+	message.result = htonl(l);	
 	return message;
 	//return result;
 }
 
-char *uppercase(char *msg) {
+message_t uppercase(char *msg) {
 	int tml = msg[0];
 	for(int i = 3; i < tml; i++){
 		char c = msg[i];
@@ -170,7 +172,19 @@ char *uppercase(char *msg) {
 		}
 	
 	}
-	return msg; 
+	
+	message_t message; 
+	message.tml = htons(msg[0]);
+	message.requestID = htons(msg[1]);
+
+	unsigned long l = 0;
+	for (int i = 3; i < tml; ++i) {
+		l = l | ((unsigned long) msg[i] << (8*i)); 
+	}
+	message.result = htonl(l);	
+	return message;
+
+//	return msg; 
 }
 
 
@@ -272,24 +286,28 @@ int main(void)
 				case 5: //cLength
 					{
 						int consonants = cLength(buf);
-						char msg[3] = "3";
-						msg[1] = request_id;
-						msg[2] = consonants; 
-						if(send(new_fd, msg, 3, 0) == -1)
+						//char msg[3] = "3";
+						//msg[1] = request_id;
+						//msg[2] = consonants; 
+						message_t msg;
+						msg.tml = htons(3); 
+						msg.requestID = htons(request_id);
+						msg.result = htonl(consonants);
+						if(send(new_fd, &msg, 3, 0) == -1)
 							perror("send");
 					} 
 					break;
 				case 80: //disemvoweling
 					{	
 						message_t msg = disemvowel(buf);
-						if(send(new_fd, msg, msg[0], 0) == -1)
+						if(send(new_fd, &msg, msg.tml, 0) == -1)
 							perror("send");
 					}
 					break;
 				case 10: //uppercasing 
 					{
-						char *msg = uppercase(buf);
-						if(send(new_fd, msg, msg[0], 0) == -1)
+						message_t msg = uppercase(buf);
+						if(send(new_fd, &msg, msg.tml, 0) == -1)
 							perror("send");  
 					}	
 					break;
