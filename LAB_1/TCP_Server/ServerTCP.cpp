@@ -41,6 +41,13 @@ void *get_in_addr(struct sockaddr *sa)
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
+struct message
+{
+	unsigned char tml;
+	unsigned short requestID;
+	unsigned long result; 
+} __attribute__((__packed__)); 
+
 int cLength(char *msg) {
 	int consonants = 0;
 	int tml = msg[0]; 
@@ -103,7 +110,7 @@ int numvowels(char *msg) {
 	return vowels; 		
 }
 
-char *disemvowel(char *msg) {
+message_t disemvowel(char *msg) {
 	int tml = msg[0]; 
 	int numvowel = numvowels(msg);
 	int length = tml - numvowel - 1;  
@@ -140,8 +147,18 @@ char *disemvowel(char *msg) {
 			location++;
 		}
 	}
+	
+	message_t message; 
+	message[0] = result[0];
+	message[1] = reuslt[1];
 
-	return result;
+	unsigned long l = 0;
+	for (int i = 3; i < tml; ++i) {
+		l = l | ((unsigned long) result[i] << (8*i)); 
+	}
+	message[2] = l;	
+	return message;
+	//return result;
 }
 
 char *uppercase(char *msg) {
@@ -264,7 +281,7 @@ int main(void)
 					break;
 				case 80: //disemvoweling
 					{	
-						char *msg = disemvowel(buf);
+						message_t msg = disemvowel(buf);
 						if(send(new_fd, msg, msg[0], 0) == -1)
 							perror("send");
 					}
