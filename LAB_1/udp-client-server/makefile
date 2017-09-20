@@ -10,10 +10,10 @@ all: demo
 demo: UDPServerDisplay.o ServerUDP.o
 	$(CC) UDPServerDisplay.o ServerUDP.o -o demo
 
-UDPServerDisplay.o:  UDPServerDisplay.cpp
+UDPServerDisplay.o:  UDPServerDisplay.cpp ServerUDP.h
 	$(CC) $(CFLAGS) UDPServerDisplay.cpp
 
-ServerUDP.o: ServerUDP.cpp
+ServerUDP.o: ServerUDP.cpp ServerUDP.h
 	$(CC) $(CFLAGS) ServerUDP.cpp
 
 clean:
