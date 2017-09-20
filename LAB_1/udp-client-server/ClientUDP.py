@@ -10,9 +10,12 @@ UPCASE = 3
 class ClientUDP:
 
     def __init__(self, ip, port):
-        self.destination_ip = ip
-        self.destination_port = int(port)
-        self.sock = socket(AF_INET, SOCK_DGRAM)
+
+        try:
+            self.server_addr = (ip, int(port))
+            self.sock = socket(AF_INET, SOCK_DGRAM)
+        except ValueError:
+            print("invalid port number")
         # do initialization here
 
     def run(self):
@@ -34,7 +37,9 @@ class ClientUDP:
 
 
     def get_response(self, msg):
-        self.sock.sendto(msg,self.destination_ip,self.destination_port)
+
+        print(self.server_addr)
+        self.sock.sendto(msg,self.server_addr)
         return "some rresult from server"
 
     def get_packed_message(self, msg, ops):
