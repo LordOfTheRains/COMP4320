@@ -3,6 +3,7 @@
 from socket import *
 import time
 import sys
+import struct
 
 class ClientTCP:
    #keep track of request number                                                
