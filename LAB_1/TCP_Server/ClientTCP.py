@@ -63,7 +63,6 @@ class ClientTCP:
 		self.tcpSocket.sendall(message)
 
 #main
-#argv: client servername portnumber operation string
 if __name__ == "__main__":
    if len(sys.argv) != 5:
       print "usage: client servername portnumber operation string"       
