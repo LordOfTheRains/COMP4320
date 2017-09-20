@@ -3,6 +3,7 @@
 from socket import *
 import time
 import sys
+import struct
 
 class ClientTCP:
    #keep track of request number                                                
@@ -25,7 +26,7 @@ class ClientTCP:
    def cLength(self, s):
 		self.sendMessage(5, s)
 		resp = self.receiveMessage(1024)
-		resTML, resRid, resAns = struct.unpack('!HHH', resp[:6])
+		resTML, resRid, resAns = struct.unpack('!HHH', resp[:struct.calcsize('!HHH')])
 
 		return resTml, resRid, resAns
 
@@ -33,7 +34,8 @@ class ClientTCP:
    def Disemvowel(self, s):
 		self.sendMessage(80, s)
 		resp = self.receiveMessage(1024)
-		resTML, resRid, resAns = struct.unpack('!HHH', resp[:6])
+		resTML, resRid = struct.unpack('!HH', resp[:struct.calcsize('!HH')])
+      		rans = str(resp[4:])
 
 		return resTML, resRid, resAns
 
@@ -41,7 +43,8 @@ class ClientTCP:
    def Uppercasing(self, s):
 		self.sendMessage(10, s)
 		resp = self.receiveMessage(1024)
-		resTML, resRid = struct.unpack('!HHH', resp[:6])
+		resTML, resRid = struct.unpack('!HH', resp[:struct.calcsize('!HH')])
+      		rans = str(resp[4:])
 
 		return resTML, resRid, resAns
 
