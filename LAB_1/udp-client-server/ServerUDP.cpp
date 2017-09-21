@@ -81,12 +81,13 @@ void ServerUDP::run(){
   close(this->sock);
 }
 
-ServerUDP::ClientRequest ServerUDP::processRaw(string msg){
+ServerUDP::ClientRequest ServerUDP::processRaw(char *msg){
   ClientRequest req;
-  req.msgLength = 10;
-  req.requestID = 4;
-  req.operation = int(msg[0]);
-  req.message = msg.substr(1);
+  req.msgLength = int(msg[0]);
+  req.requestID = int(msg[1]);
+  req.operation = int(msg[2]);
+  string content(&msg[3], &msg[3] + req.msgLength);
+  req.message = content;
   req.error = 0;
   return req;
 }
@@ -100,15 +101,15 @@ string ServerUDP::getResponse(ClientRequest *req){
   printf("Message is [%s]\n",msg.c_str());
   printf("Operation is [%d]\n", req->operation);
   switch(req->operation) {
-    case 1: //getCLength
+    case 0x05: //getCLength
       puts("Counting number of consonants...");
       response = getCLength(msg);
       break;
-    case 2: //disemvoweling
+    case 0x50: //disemvoweling
       puts("Getting rid of vowels...");
       response = disemvoweling(msg);
       break;
-    case 3:// upperCasing
+    case 0x80:// upperCasing
       puts("Capitalizing everything...");
       response = upperCasing(msg);
       break;
@@ -126,7 +127,7 @@ string ServerUDP::getResponse(ClientRequest *req){
 //getCLength("Hello") == "3"
 string ServerUDP::getCLength(string msg){
   int result = 0;
-  char vowels[] = {'a', 'e', 'i', 'o', 'u'};
+  char vowels[] = {'a', 'e', 'i', 'o', 'u', 'y'};
   bool isVowel = false;
   // iterate message and see if the letter is vowel
   // if not vowel, increment result
@@ -154,7 +155,7 @@ string ServerUDP::getCLength(string msg){
 //return message without vowels
 //disemvoweling("Hello") == "HLL"
 string ServerUDP::disemvoweling(string msg){
-  char vowels[] = {'a', 'e', 'i', 'o', 'u'};
+  char vowels[] = {'a', 'e', 'i', 'o', 'u', 'y'};
   string result = "";
   bool isVowel = false;
   for(char& c : msg) {//get each letter
@@ -180,6 +181,13 @@ string ServerUDP::disemvoweling(string msg){
 //return message uppercasing every letter
 // upperCasing("Hello") == "HELLO"
 string ServerUDP::upperCasing(string msg){
+  //string upped[msg.size()];
+  for (auto & let: msg) let = toupper(let);
+  puts(msg.c_str());
+  return msg;
+}
+
+ServerUDP::responseType ServerUDP::getResponse(string msg){
   //string upped[msg.size()];
   for (auto & let: msg) let = toupper(let);
   puts(msg.c_str());
