@@ -43,11 +43,12 @@ class ClientUDP:
         print >>sys.stderr, 'waiting for server response'
         data, server = self.sock.recvfrom(4096)
         print >>sys.stderr, 'received "%s"' % data
-        return "some result from server"
+        return data
 
     def get_packed_message(self, msg, ops):
         # packet the message to send to server
         server_msg = ops+msg
+        print server_msg
         return server_msg
 
 

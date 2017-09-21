@@ -1,17 +1,22 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <arpa/inet.h>
+
 #include <cstdlib>           // For atoi()
 #include <stdexcept>
 #include <unistd.h>
+#include<iostream>
 #include <errno.h>
 #include <stdio.h>
 #include <cstring>
+#include <ctype.h>
 #include <ServerUDP.h>
 
 using namespace std;
 
 
+#define BUF_SIZE 1024
 
 ServerUDP::ServerUDP(int port){
   if ((this->sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -37,110 +42,51 @@ int ServerUDP::configure(){
 }
 
 void ServerUDP::run(){
+
+    int num_byte;
+    socklen_t addr_len;
+    char buffer[BUF_SIZE];
+    struct sockaddr_in client;
 // run the server continuously.
 //not sure if i need to fork for udp if new connection detected.
-	int numbytes;
-  int rv;
-  int MAXBUFLEN = 100;
-  int client_sock;
-	char buf[MAXBUFLEN];
-	struct sockaddr_storage their_addr;
-  struct addrinfo hints, *clients, *client;
-	socklen_t addr_len;
+  while (1) {
+    addr_len = sizeof(client);
+    /* read a datagram from the socket (put result in bufin) */
+    num_byte=recvfrom(this->sock,buffer,BUF_SIZE,0,(struct sockaddr *)&client,&addr_len);
 
-  memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_UNSPEC; // set to AF_INET to force IPv4
-	hints.ai_socktype = SOCK_DGRAM;
-	hints.ai_flags = AI_PASSIVE; // use my IP
+    /* print out the address of the sender */
+    printf("Got a datagram from %s port %d\n",
+           inet_ntoa(client.sin_addr), ntohs(client.sin_port));
 
-  while (1){ 	// _M2
-    addr_len = sizeof their_addr;
+    if (num_byte<0) {
+      perror("Error receiving data");
+    } else {
+      printf("GOT %d BYTES\n",num_byte);
+      display(buffer,num_byte);
+      // handle this packet
+      ClientRequest req = processRaw(buffer);
+      if (req.error){
+        printf("\n >>>> invalid request:...\n");
+      }else{
+        string resp = getResponse(&req);
+        printf("sending response: %s\n",resp.c_str());
+        //then send the response message back to sender;
+        sendto(this->sock,resp.c_str(),resp.size(),0,(struct sockaddr *)&client,sizeof(client));
+        printf("response sent.\n");
+      }
+      /* Got something, just send it back */
 
-    if ((rv = getaddrinfo(NULL, to_string(this->port).c_str(), &hints, &clients)) != 0) {
-		  fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-		  return;
-	  }
-    // loop through all the results and bind to the first for now,
-    // should implement new thread or process for multiple active socket bind
-    for(client = clients;client != NULL;client = client->ai_next) {
-
-  		if ((client_sock = socket(client->ai_family, client->ai_socktype,
-  				client->ai_protocol)) == -1) {
-          perror("listener: socket");
-          continue;
-		  }
-      //bind to client to get data
-  		if (bind(client_sock, client->ai_addr, client->ai_addrlen) == -1) {
-  			close(client_sock);
-  			perror("listener: bind");
-  			continue;
-  		}
-		    break;
-	  }
-    // store data received ffrom client socket in buf and print it
-    if (client == NULL) {
-      fprintf(stderr, "listener: failed to bind socket\n");
-      return;
-    }
-	   freeaddrinfo(clients);
-
-    if ((numbytes = recvfrom(this->sock, buf, MAXBUFLEN-1 , 0,
-           (struct sockaddr *)&their_addr, &addr_len)) == -1) {
-      perror("recvfrom");
-      exit(1);
-    }
-    printf("listener: packet contains \"%s\"\n", buf);
-    display(buf,numbytes);
-    // handle this packet
-    ClientRequest req = processRaw(buf);
-    if (req.error){
-      printf("\n >>>> invalid request:...\n");
-    }else{
-      string resp = getResponse(&req);
-      puts("sending response");
-      //then send the response message back to sender;
-      sendto(this->sock, resp.c_str(), resp.size(), 0,  (struct sockaddr *)&their_addr, addr_len);
     }
   }
   close(this->sock);
-    /*
-    printf("\n >>>> listener: waiting for a datagram...\n");
-
-    addr_len = sizeof their_addr;
-    if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1 , 0,
-           (struct sockaddr *)&their_addr, &addr_len)) == -1) {
-      perror("recvfrom");
-      exit(1);
-    }
-
-    printf("listener: got packet from %s\n",
-     inet_ntop(their_addr.ss_family,
-         get_in_addr((struct sockaddr *)&their_addr),
-         s, sizeof s));
-    printf("listener: packet is %d bytes long\n", numbytes);
-    buf[numbytes] = '\0';
-    printf("listener: packet contains \"%s\"\n", buf);
-    display(buf,numbytes); // _M3
-
-    //
-    ClientRequest req = processRaw("the packet");
-    if (req->error){
-      printf("\n >>>> invalid request:...\n");
-    }else{
-      string resp = getResponse(req);
-      //then send the response message back to sender;
-    }
-  } // _M2
-  close(this->sock);
-*/
 }
 
 ServerUDP::ClientRequest ServerUDP::processRaw(string msg){
   ClientRequest req;
   req.msgLength = 10;
   req.requestID = 4;
-  req.operation = 1;
-  req.message = "messge part";
+  req.operation = int(msg[0]);
+  req.message = msg.substr(1);
   req.error = 0;
   return req;
 }
@@ -149,25 +95,30 @@ ServerUDP::ClientRequest ServerUDP::processRaw(string msg){
 // returns the final message ready to be sent back to client
 string ServerUDP::getResponse(ClientRequest *req){
   //int reqID = req->requestID;
-  int ops = req->operation;
   string msg = req->message;
   string response;
-  switch(ops) {
+  printf("Message is [%s]\n",msg.c_str());
+  printf("Operation is [%d]\n", req->operation);
+  switch(req->operation) {
     case 1: //getCLength
+      puts("Counting number of consonants...");
       response = getCLength(msg);
       break;
     case 2: //disemvoweling
+      puts("Getting rid of vowels...");
       response = disemvoweling(msg);
       break;
     case 3:// upperCasing
+      puts("Capitalizing everything...");
       response = upperCasing(msg);
       break;
     default:
-      response = "error operation code.";
+      puts("Operation not supported...");
+      response = "error operation code." + req->operation;
       break;
   }
   //pack the result message
-  return "answer";
+  return response;
 
 }
 
@@ -176,14 +127,24 @@ string ServerUDP::getResponse(ClientRequest *req){
 string ServerUDP::getCLength(string msg){
   int result = 0;
   char vowels[] = {'a', 'e', 'i', 'o', 'u'};
+  bool isVowel = false;
   // iterate message and see if the letter is vowel
   // if not vowel, increment result
 
-  for(auto c : msg) {//get each letter
-    for (auto v: vowels){//iterate  vowel list
-      if (c != v){//letter is a consonant
-        result ++;
+  for(char& c : msg) {//get each letter
+    if (isalpha(c)) {
+      cout << "One character: " << c << "\n";
+      for (char& v: vowels){//iterate  vowel list
+        cout << "One vowel: " << v << "\n";
+        if (c == v){//letter is a consonant
+          isVowel = true;
+        }
       }
+      if (!isVowel){
+        result++;
+        puts("------was consonant;");
+      }
+      isVowel = false;
     }
   }
   return to_string(result);
@@ -195,11 +156,21 @@ string ServerUDP::getCLength(string msg){
 string ServerUDP::disemvoweling(string msg){
   char vowels[] = {'a', 'e', 'i', 'o', 'u'};
   string result = "";
-  for (auto c : msg) {
-    for (auto v: vowels){//iterate  vowel list
-          if (c != v){//letter is a consonant
-            result += c;//add letter to result
-          }
+  bool isVowel = false;
+  for(char& c : msg) {//get each letter
+    if (isalpha(c)) {
+      cout << "One character: " << c << "\n";
+      for (char& v: vowels){//iterate  vowel list
+        cout << "One vowel: " << v << "\n";
+        if (c == v){//letter is a consonant
+          isVowel = true;
+        }
+      }
+      if (!isVowel){
+        result += c;
+        puts("------was consonant------");
+      }
+      isVowel = false;
     }
   }
   return result;
