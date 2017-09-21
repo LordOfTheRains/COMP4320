@@ -25,23 +25,21 @@ class ClientTCP:
    def cLength(self, s):
        self.sendMessage(5, s)
        resp = self.receiveMessage(1024)
-       resTML, resRid, resAns = struct.unpack('!HHH', resp[:struct.calcsize('!HHH')])
-       return resTml, resRid, resAns
+       resTML, resRid, resAns = struct.unpack('!B B B', resp[:struct.calcsize('!B B B')])
+       return resTML, resRid, resAns
 
 #remove vowels in s
    def Disemvowel(self, s):
        self.sendMessage(80, s)
        resp = self.receiveMessage(1024)
-       resTML, resRid = struct.unpack('!HH', resp[:struct.calcsize('!HH')])
-       resAns = str(resp[4:])
+       resTML, resRid, resAns = struct.unpack('!B B s', resp[:struct.calcsize('!B B s')])
        return resTML, resRid, resAns
 
 #change letters in s to uppercase
    def Uppercasing(self, s):
        self.sendMessage(10, s)
        resp = self.receiveMessage(1024)
-       resTML, resRid = struct.unpack('!HH', resp[:struct.calcsize('!HH')])
-       resAns = str(resp[4:])
+       resTML, resRid, resAns = struct.unpack('!B B s', resp[:struct.calcsize('!B B s')])
        return resTML, resRid, resAns
 
 #recieve message from server
@@ -51,10 +49,10 @@ class ClientTCP:
 
 #send message to server
    def sendMessage(self, operation, s):
-       tml = len(s)
-       rid = ClientTCP.requestID = ClientTCP.requestID+1
-       messageHeader = struct.pack('!HHB',tml,rid,operation)
-       message = str(messageHeader) + s
+       tml = 2 + len(s)
+       rid = ClientTCP.requestID 
+       ClientTCP.requestID = ClientTCP.requestID+1
+       messageHeader = struct.pack('!B B B s',tml,rid,operation, s)
        self.tcpSocket.sendall(message)
 
 #main
