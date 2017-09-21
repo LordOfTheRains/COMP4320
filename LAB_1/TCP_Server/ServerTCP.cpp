@@ -65,10 +65,12 @@ typedef struct received received_t;
 
 int cLength(char *msg) {
 	int consonants = 0;
-	char totallength = msg[0]; 
-	int tml = totallength;
+	int tml = msg[0] - '0';
 	for(int i = 3; i < tml; i++) {
 		char c = msg[i];
+
+		printf("This is c: %c\n",c); 
+
 		if(isalpha(c)){
 			switch(c){
 				case 'A':
@@ -297,27 +299,31 @@ int main(void)
 				perror("recv"); 
 				exit(1);
 			}
-			//buf[byte_count] = '\0';
+			buf[byte_count] = '\0';
 			
 			printf("Here is what I received:%s\n ",buf); 			
-				
+			printf("This is %d bytes\n", byte_count); 		
+			printf("TML: %d\n", int(buf[0]));
+		
 			// message handling
-			char tml = buf[0]; 
-			char request_id = buf[1];
-			char operation = buf[2]; 
-			int op = int(operation);
-				
+			int tml = buf[0] - '0'; 
+			int request_id = buf[1] - '0';
+			int operation = buf[2] - '0'; 
+			//int op = int(operation);
+			
+			printf("This is TML: %d, RID: %d, OP: %d\n", tml, request_id, operation);
+
+
 
 			for(int i = 0; i < 9; i++) {
 				char x = buf[i];
 				std::cout << x;
 			}	
-			//printf("\nThis is: ",tml, request_id, operation,"\n");
-			std::cout <<" here" << op << " other: " << operation;
 	
 			switch(operation) {
 				case 5: //cLength
 					{
+						printf("I am in switch clength\n");
 						int consonants = cLength(buf);
 						//char msg[3] = "3";
 						//msg[1] = request_id;
