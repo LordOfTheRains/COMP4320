@@ -69,7 +69,7 @@ void ServerUDP::run(){
         printf("\n >>>> invalid request:...\n");
       }else{
         Response resp = getResponse(&req);
-        printf("sending response: %s\n",resp);
+        printf("sending response: %s\n",resp.result);
         //then send the response message back to sender;
         sendto(this->sock,&resp,sizeof(resp),0,(struct sockaddr *)&client,sizeof(client));
         printf("response sent.\n");
@@ -122,7 +122,7 @@ ServerUDP::Response ServerUDP::getResponse(ClientRequest *req){
   Response res;
   res.tml = response.size() + 2;
   res.requestID = req->requestID;
-  res.result = (unsigned long) response;
+  res.result = strtoul(response, NULL, 0);
   return res;
 
 }
@@ -140,7 +140,7 @@ string ServerUDP::getCLength(string msg){
     if (isalpha(c)) {
       cout << "One character: " << c << "\n";
       for (char& v: vowels){//iterate  vowel list
-        cout << "One vowel: " << v << "\n";
+        //cout << "One vowel: " << v << "\n";
         if (tolower(c) == v){//letter is a consonant
           isVowel = true;
         }
@@ -164,9 +164,9 @@ string ServerUDP::disemvoweling(string msg){
   bool isVowel = false;
   for(char& c : msg) {//get each letter
     if (isalpha(c)) {
-      cout << "One character: " << c << "\n";
+      //cout << "One character: " << c << "\n";
       for (char& v: vowels){//iterate  vowel list
-        cout << "One vowel: " << v << "\n";
+        //cout << "One vowel: " << v << "\n";
         if (tolower(c) == v){//letter is a consonant
           isVowel = true;
         }
@@ -185,13 +185,6 @@ string ServerUDP::disemvoweling(string msg){
 //return message uppercasing every letter
 // upperCasing("Hello") == "HELLO"
 string ServerUDP::upperCasing(string msg){
-  //string upped[msg.size()];
-  for (auto & let: msg) let = toupper(let);
-  puts(msg.c_str());
-  return msg;
-}
-
-ServerUDP::responseType ServerUDP::getResponse(string msg){
   //string upped[msg.size()];
   for (auto & let: msg) let = toupper(let);
   puts(msg.c_str());

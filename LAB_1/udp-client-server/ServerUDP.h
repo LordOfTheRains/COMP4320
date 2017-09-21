@@ -38,12 +38,11 @@ class ServerUDP {
     int sock; //PORT
     int port;
 
-    ClientRequest processRaw(string msg);
+    ClientRequest processRaw(char *msg);
     Response getResponse(ClientRequest *req);
     string getCLength(string msg);
     string disemvoweling(string msg);
     string upperCasing(string msg);
-    responseType ServerUDP::upperCasing(string msg);
     void display(char *Buffer, int length);
 };
 

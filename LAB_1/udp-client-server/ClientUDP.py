@@ -35,18 +35,13 @@ class ClientUDP:
                     start_time = time.time()
                     tml, rid, response = self.get_response(server_msg)
                     end_time = time.time()
-<<<<<<< Updated upstream
-                    print "\nRequest ID: {}".format(response[1])
-                    print "\nResponse:  {}".format(response[2])
-=======
-
                     print "\ntml:  {}".format(tml)
                     print "\nRequest ID: {}".format(rid)
                     print "\nResponse:  {}".format(response)
->>>>>>> Stashed changes
                     print "\nRound trip time: {}s".format(end_time-start_time)
             except ValueError as ex:
                 print ("operation code must be a number")
+                print ex
                 break;
 
 
@@ -61,7 +56,7 @@ class ClientUDP:
         rid = struct.unpack("B", data[1:2])[0]
         response = data[2:]
         print ('---\n')
-        print response
+        print(bin(response))
 
         return tml, rid, response
 
