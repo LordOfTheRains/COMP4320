@@ -91,6 +91,6 @@ if __name__ == "__main__":
       sys.exit()
    print "\nTML: {}".format(tml)
    print "\nRequestId: {}".format(rid)
-   print "\nResponse:  {}".format(result)
+   print "\nResponse: {}".format(result)
    print "\nRound trip time: {}s".format(endTime-startTime)
    sys.exit()
