@@ -17,7 +17,7 @@
 #include <ctype.h>
 #include <iostream>
 
-#define PORT "10017"  // the port users will be connecting to
+//now in commandline #define PORT "10017"  // the port users will be connecting to
 
 #define BACKLOG 10	 // how many pending connections queue will hold
 
@@ -58,7 +58,7 @@ struct received
 	unsigned char tml;
 	unsigned char requestID;
 	unsigned char operation;
-	unsigned long result;
+	unsigned long message;
 } __attribute__((__packed__));
 typedef struct received received_t;
 
@@ -203,7 +203,7 @@ message_t uppercase(char *msg) {
 }
 
 
-int main(void)
+int main(int argc, char *argv[])
 {
 	int sockfd, new_fd;  // listen on sock_fd, new connection on new_fd
 	struct addrinfo hints, *servinfo, *p;
@@ -217,13 +217,18 @@ int main(void)
 	char buf[MAXDATASIZE];
 	int byte_count; 		
 
+	//take in portnumber from commandline
+	if (argc != 2) {
+		fprintf(stderr, "usage: server portnumber\n");
+		exit(1);
+	}
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE; // use my IP
 
-	if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
+	if ((rv = getaddrinfo(NULL, argv[1], &hints, &servinfo)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
 		return 1;
 	}
@@ -311,6 +316,24 @@ int main(void)
 			int operation = buf[2] - '0'; 
 			//int op = int(operation);
 			
+
+
+		//	received_t rec;
+	//		rec.tml = ntohs(buf[0]);
+	//		rec.requestID = ntohs(buf[1]);
+	//		rec.operation = ntohs(buf[2]);
+			
+	//		char x[(byte_count - 3)];
+	//		for(int i = 3; i < byte_count; i++){
+	//			x[i-3] = buf[i];
+	//		}
+			//rec.message = x; 	
+			
+
+	//		int tml = rec.tml - '0';
+	//		int request_id = rec.requestID - '0';
+	//		int operation = rec.operation - '0';
+
 			printf("This is TML: %d, RID: %d, OP: %d\n", tml, request_id, operation);
 
 
@@ -324,16 +347,19 @@ int main(void)
 				case 5: //cLength
 					{
 						int consonants = cLength(buf);
-						char msg[3];
-						msg[0] = 3;
-						msg[1] = request_id;
-						msg[2] = consonants; 
-						//message_t msg;
-						//msg.tml = '3';
-						//msg.requestID = request_id;
-						//msg.result = consonants;	
+						//char msg[3];
+						//msg[0] = 3;
+						//msg[1] = request_id;
+						//msg[2] = consonants; 
+						message_t msg;
+						msg.tml = 3;
+						msg.requestID = request_id;
+						msg.result = consonants;	
 						printf("Numconsonants: %d\n", consonants);
-						if(send(new_fd, &msg, 3, 0) == -1)
+					
+						printf("msg.result: %d\n", msg.result);
+
+						if(send(new_fd, &msg, sizeof(msg), 0) == -1)
 							perror("send");
 					} 
 					break;
