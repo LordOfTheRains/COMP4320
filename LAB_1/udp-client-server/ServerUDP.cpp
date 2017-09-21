@@ -68,10 +68,10 @@ void ServerUDP::run(){
       if (req.error){
         printf("\n >>>> invalid request:...\n");
       }else{
-        string resp = getResponse(&req);
-        printf("sending response: %s\n",resp.c_str());
+        Response resp = getResponse(&req);
+        printf("sending response: %s\n",resp);
         //then send the response message back to sender;
-        sendto(this->sock,resp.c_str(),resp.size(),0,(struct sockaddr *)&client,sizeof(client));
+        sendto(this->sock,&resp,sizeof(resp),0,(struct sockaddr *)&client,sizeof(client));
         printf("response sent.\n");
       }
       /* Got something, just send it back */
@@ -94,7 +94,7 @@ ServerUDP::ClientRequest ServerUDP::processRaw(char *msg){
 
 
 // returns the final message ready to be sent back to client
-string ServerUDP::getResponse(ClientRequest *req){
+ServerUDP::Response ServerUDP::getResponse(ClientRequest *req){
   //int reqID = req->requestID;
   string msg = req->message;
   string response;
@@ -119,7 +119,11 @@ string ServerUDP::getResponse(ClientRequest *req){
       break;
   }
   //pack the result message
-  return response;
+  Response res;
+  res.tml = response.size() + 2;
+  res.requestID = req->requestID;
+  res.result = (unsigned long) response;
+  return res;
 
 }
 

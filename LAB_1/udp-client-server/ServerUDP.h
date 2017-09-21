@@ -27,9 +27,7 @@ class ServerUDP {
       int error;
     };
 
-
-    struct response
-    {
+    struct Response{
     	unsigned char tml;
     	unsigned short requestID;
     	unsigned long result;
@@ -40,8 +38,8 @@ class ServerUDP {
     int sock; //PORT
     int port;
 
-    ClientRequest processRaw(char *msg);
-    string getResponse(ClientRequest *req);
+    ClientRequest processRaw(string msg);
+    Response getResponse(ClientRequest *req);
     string getCLength(string msg);
     string disemvoweling(string msg);
     string upperCasing(string msg);

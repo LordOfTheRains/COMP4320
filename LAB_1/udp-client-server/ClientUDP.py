@@ -33,11 +33,17 @@ class ClientUDP:
                 else:
                     server_msg = self.get_packed_message(message, ops)
                     start_time = time.time()
-                    response = self.get_response(server_msg)
-                    print(self.get_response(server_msg))
+                    tml, rid, response = self.get_response(server_msg)
                     end_time = time.time()
+<<<<<<< Updated upstream
                     print "\nRequest ID: {}".format(response[1])
                     print "\nResponse:  {}".format(response[2])
+=======
+
+                    print "\ntml:  {}".format(tml)
+                    print "\nRequest ID: {}".format(rid)
+                    print "\nResponse:  {}".format(response)
+>>>>>>> Stashed changes
                     print "\nRound trip time: {}s".format(end_time-start_time)
             except ValueError as ex:
                 print ("operation code must be a number")
@@ -51,7 +57,13 @@ class ClientUDP:
         #print >>sys.stderr, 'waiting for server response'
         data, server = self.sock.recvfrom(4096)
         print >>sys.stderr, 'received "%s"' % data
-        return data
+        tml = struct.unpack("B", data[0:1])[0]
+        rid = struct.unpack("B", data[1:2])[0]
+        response = data[2:]
+        print ('---\n')
+        print response
+
+        return tml, rid, response
 
     def get_packed_message(self, msg, ops):
         # packet the message to send to server
