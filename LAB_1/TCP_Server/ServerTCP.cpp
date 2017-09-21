@@ -98,7 +98,7 @@ int cLength(char *msg) {
 
 int numvowels(char *msg) {
 	int vowels = 0;
-	int tml = msg[0]; 
+	int tml = msg[0] - '0'; 
 	
 	for(int i = 3; i < tml; i++) {
 		char c = msg[i];
@@ -128,13 +128,13 @@ int numvowels(char *msg) {
 }
 
 message_t disemvowel(char *msg) {
-	int tml = msg[0]; 
+	int tml = msg[0] - '0'; 
 	int numvowel = numvowels(msg);
 	int length = tml - numvowel - 1;  
 	char *result = (char *) malloc(sizeof(char) * length); 
 	
 	result[0] = length;
-	result[1] = msg[1]; 
+	result[1] = msg[1] - '0'; 
 	int location = 2;
 	for(int i = 3; i < tml; i++){
 		char c = msg[i]; 
@@ -179,7 +179,7 @@ message_t disemvowel(char *msg) {
 }
 
 message_t uppercase(char *msg) {
-	int tml = msg[0];
+	int tml = msg[0] - '0';
 	for(int i = 3; i < tml; i++){
 		char c = msg[i];
 		if(islower(c)){
@@ -323,15 +323,16 @@ int main(void)
 			switch(operation) {
 				case 5: //cLength
 					{
-						printf("I am in switch clength\n");
 						int consonants = cLength(buf);
-						//char msg[3] = "3";
+						//char msg[3];
+						//msg[0] = '3';
 						//msg[1] = request_id;
 						//msg[2] = consonants; 
 						message_t msg;
-						msg.tml = htons(3); 
-						msg.requestID = htons(request_id);
-						msg.result = htonl(consonants);
+						msg.tml = '3';
+						msg.requestID = request_id;
+						msg.result = consonants;	
+						printf("Numconsonants: %d\n", consonants);
 						if(send(new_fd, &msg, 3, 0) == -1)
 							perror("send");
 					} 
