@@ -15,10 +15,13 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <ctype.h>
+#include <iostream>
 
 #define PORT "10017"  // the port users will be connecting to
 
 #define BACKLOG 10	 // how many pending connections queue will hold
+
+#define MAXDATASIZE 256 
 
 void sigchld_handler(int s)
 {
@@ -199,6 +202,10 @@ int main(void)
 	char s[INET6_ADDRSTRLEN];
 	int rv;
 
+	char buf[MAXDATASIZE];
+	int byte_count; 		
+
+
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
@@ -271,12 +278,18 @@ int main(void)
 			close(sockfd); // child doesn't need the listener
 
 			//this is the message receiving section			
-			char buf[256];
-			int byte_count; 
+			//char buf[256];
+			//int byte_count; 
 			
-			if(byte_count = recv(new_fd, buf, sizeof buf, 0) == -1)
+			if((byte_count = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1)
+			{
 				perror("recv"); 
+				exit(1);
+			}
+			buf[byte_count] = '\0';
 			
+			printf("Here is what I received:%s\n ",buf); 			
+				
 			// message handling
 			int tml = buf[0]; 
 			int request_id = buf[1];
@@ -318,10 +331,11 @@ int main(void)
 			//if (send(new_fd, "Hello, world!", 13, 0) == -1)
 			//	perror("send");
 
-
+			printf("\nat the end of the big if");
 			close(new_fd);
 			exit(0);
 		}
+		printf("I am skipping the if"); 
 		close(new_fd);  // parent doesn't need this
 	}
 
