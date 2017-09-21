@@ -1,4 +1,4 @@
-#!/usr/bin/python                                                               
+#!/usr/bin/python
 
 from socket import *
 import time
@@ -6,66 +6,61 @@ import sys
 import struct
 
 class ClientTCP:
-   #keep track of request number                                                
+   #keep track of request number
    requestID = 0
 
-   #initialize client                                                           
+   #initialize client
    def __init__(self, servername, portnumber):
       self.servername = servername
       self.portnumber = portnumber
       self.tcpSocket = self.connectToServer((servername, portnumber))
 
-   #connect to TCP server                                                       
+   #connect to TCP server
    def connectToServer(self, servAddr):
       tcpSocket = socket(AF_INET, SOCK_STREAM)
       tcpSocket.connect(servAddr)
-      
       return tcpSocket
-      
+
 #number of consonants in s
    def cLength(self, s):
-		self.sendMessage(5, s)
-		resp = self.receiveMessage(1024)
-		resTML, resRid, resAns = struct.unpack('!HHH', resp[:struct.calcsize('!HHH')])
-
-		return resTml, resRid, resAns
+       self.sendMessage(5, s)
+       resp = self.receiveMessage(1024)
+       resTML, resRid, resAns = struct.unpack('!HHH', resp[:struct.calcsize('!HHH')])
+       return resTml, resRid, resAns
 
 #remove vowels in s
    def Disemvowel(self, s):
-		self.sendMessage(80, s)
-		resp = self.receiveMessage(1024)
-		resTML, resRid = struct.unpack('!HH', resp[:struct.calcsize('!HH')])
-      		resAns = str(resp[4:])
-
-		return resTML, resRid, resAns
+       self.sendMessage(80, s)
+       resp = self.receiveMessage(1024)
+       resTML, resRid = struct.unpack('!HH', resp[:struct.calcsize('!HH')])
+       resAns = str(resp[4:])
+       return resTML, resRid, resAns
 
 #change letters in s to uppercase
    def Uppercasing(self, s):
-		self.sendMessage(10, s)
-		resp = self.receiveMessage(1024)
-		resTML, resRid = struct.unpack('!HH', resp[:struct.calcsize('!HH')])
-      		resAns = str(resp[4:])
+       self.sendMessage(10, s)
+       resp = self.receiveMessage(1024)
+       resTML, resRid = struct.unpack('!HH', resp[:struct.calcsize('!HH')])
+       resAns = str(resp[4:])
+       return resTML, resRid, resAns
 
-		return resTML, resRid, resAns
-
-#recieve message from server      
+#recieve message from server
    def receiveMessage(self, respLen):
-		resp = self.tcpSocket.recv(respLen)
-      
-		return resp
+       resp = self.tcpSocket.recv(respLen)
+       return resp
 
 #send message to server
    def sendMessage(self, operation, s):
-		tml = len(s)
-		rid = ClientTCP.requestID = ClientTCP.requestID+1
-		messageHeader = struct.pack('!HHB',tml,rid,operation)
-		message = str(messageHeader) + s
-		self.tcpSocket.sendall(message)
+       tml = len(s)
+       rid = ClientTCP.requestID = ClientTCP.requestID+1
+       messageHeader = struct.pack('!HHB',tml,rid,operation)
+       message = str(messageHeader) + s
+       self.tcpSocket.sendall(message)
 
 #main
 if __name__ == "__main__":
    if len(sys.argv) != 5:
-      print "usage: client servername portnumber operation string"       
+      print "usage: client servername portnumber operation string"
       sys.exit()
    client = sys.argv[0]
    servername = sys.argv[1]
