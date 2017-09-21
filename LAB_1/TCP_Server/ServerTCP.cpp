@@ -324,14 +324,14 @@ int main(void)
 				case 5: //cLength
 					{
 						int consonants = cLength(buf);
-						//char msg[3];
-						//msg[0] = '3';
-						//msg[1] = request_id;
-						//msg[2] = consonants; 
-						message_t msg;
-						msg.tml = '3';
-						msg.requestID = request_id;
-						msg.result = consonants;	
+						char msg[3];
+						msg[0] = 3;
+						msg[1] = request_id;
+						msg[2] = consonants; 
+						//message_t msg;
+						//msg.tml = '3';
+						//msg.requestID = request_id;
+						//msg.result = consonants;	
 						printf("Numconsonants: %d\n", consonants);
 						if(send(new_fd, &msg, 3, 0) == -1)
 							perror("send");
