@@ -1,6 +1,7 @@
 from socket import *
 import sys
-
+import time
+import struct
 
 
 C_LENGTH = 1
@@ -10,7 +11,7 @@ UPCASE = 3
 class ClientUDP:
 
     def __init__(self, ip, port):
-
+        self.request_id = 0
         try:
             self.server_addr = (ip, int(port))
             self.sock = socket(AF_INET, SOCK_DGRAM)
@@ -21,16 +22,23 @@ class ClientUDP:
     def run(self):
         while(1):
             message = raw_input("Enter Message: ")
+            print("Operations: [1] - C length; [2] - Disemvowel; [3] - Upcasing")
             ops_code = raw_input("Enter operation code: ")
             try:
                 ops = int(ops_code)
                 if ops != C_LENGTH and ops != DISEMVOWEL and ops != UPCASE:
                     print ("Invalid Operation Code")
-                    #do C_LENGTH
+                    print("Operations: [1] - C length; [2] - Disemvowel; [3] - Upcasing")
                     break;
                 else:
                     server_msg = self.get_packed_message(message, ops_code)
+                    start_time = time.time()
+                    response = self.get_response(server_msg)
                     print(self.get_response(server_msg))
+                    end_time = time.time()
+                    print "\nRequest ID: {}".format(result[1])
+                    print "\nResponse:  {}".format(result[2])
+                    print "\nRound trip time: {}s".format(end_time-start_time)
             except ValueError as ex:
                 print ("operation code must be a number")
                 break;
@@ -47,8 +55,17 @@ class ClientUDP:
 
     def get_packed_message(self, msg, ops):
         # packet the message to send to server
-        server_msg = ops+msg
-        print server_msg
+        msg_size_byte = len(msg.encode('utf-8'))
+        tml = msg_size_byte + 3
+        if ops == 1:
+            ops_code = 0x05
+        elif ops == 2: #disemvoweling
+            ops_code = 0x50
+        else:#upcasing
+            ops_code = 0x0a
+        server_msg = struct.pack("!bbb",tml,self.request_id, ops_code) + msg
+        print repr(server_msg)
+        self.request_id = self.request_id+1
         return server_msg
 
 
