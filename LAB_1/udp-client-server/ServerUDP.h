@@ -27,6 +27,14 @@ class ServerUDP {
       int error;
     };
 
+
+    struct message
+    {
+    	unsigned char tml;
+    	unsigned short requestID;
+    	unsigned long result;
+    } __attribute__((__packed__));
+
   private:
 
     int sock; //PORT

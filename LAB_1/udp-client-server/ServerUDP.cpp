@@ -136,7 +136,7 @@ string ServerUDP::getCLength(string msg){
       cout << "One character: " << c << "\n";
       for (char& v: vowels){//iterate  vowel list
         cout << "One vowel: " << v << "\n";
-        if (c == v){//letter is a consonant
+        if (tolower(c) == v){//letter is a consonant
           isVowel = true;
         }
       }
@@ -162,7 +162,7 @@ string ServerUDP::disemvoweling(string msg){
       cout << "One character: " << c << "\n";
       for (char& v: vowels){//iterate  vowel list
         cout << "One vowel: " << v << "\n";
-        if (c == v){//letter is a consonant
+        if (tolower(c) == v){//letter is a consonant
           isVowel = true;
         }
       }
