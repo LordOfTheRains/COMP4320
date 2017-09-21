@@ -53,10 +53,20 @@ struct message
 
 typedef struct message message_t; 
 
+struct received 
+{
+	unsigned char tml;
+	unsigned char requestID;
+	unsigned char operation;
+	unsigned long result;
+} __attribute__((__packed__));
+typedef struct received received_t;
+
+
 int cLength(char *msg) {
 	int consonants = 0;
-	int tml = msg[0]; 
-	
+	char totallength = msg[0]; 
+	int tml = totallength;
 	for(int i = 3; i < tml; i++) {
 		char c = msg[i];
 		if(isalpha(c)){
@@ -280,21 +290,31 @@ int main(void)
 			//this is the message receiving section			
 			//char buf[256];
 			//int byte_count; 
-			
+		
+				
 			if((byte_count = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1)
 			{
 				perror("recv"); 
 				exit(1);
 			}
-			buf[byte_count] = '\0';
+			//buf[byte_count] = '\0';
 			
 			printf("Here is what I received:%s\n ",buf); 			
 				
 			// message handling
-			int tml = buf[0]; 
-			int request_id = buf[1];
+			char tml = buf[0]; 
+			char request_id = buf[1];
 			char operation = buf[2]; 
-			
+			int op = int(operation);
+				
+
+			for(int i = 0; i < 9; i++) {
+				char x = buf[i];
+				std::cout << x;
+			}	
+			//printf("\nThis is: ",tml, request_id, operation,"\n");
+			std::cout <<" here" << op << " other: " << operation;
+	
 			switch(operation) {
 				case 5: //cLength
 					{
