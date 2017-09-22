@@ -146,7 +146,7 @@ unsigned long long toBinary(string msg) {
 message_t disemvowel(received_t rec) {
 	int numvowel = numvowels(rec);
 	
-	printf("In disemvowel, numvowel: %d ", numvowel); 
+	printf("In disemvowel, numvowel: %d\n", numvowel); 
 
 	int length = rec.tml - numvowel - 1;  
 	char *result = (char *) malloc(sizeof(char) * (length-1)); 
@@ -216,11 +216,6 @@ message_t uppercase(received_t rec) {
 	message.tml = rec.tml;
 	message.requestID = rec.requestID;
 
-	unsigned long l = 0;
-	for (int i = 3; i < rec.tml; ++i) {
-		l = l | ((unsigned long) rec.message[i] << (8*i)); 
-	}
-	
 	message.result = toBinary(rec.message);	
 }
 
@@ -346,7 +341,7 @@ int main(int argc, char *argv[])
 			
 
 			printf("This is TML: %d, RID: %d, OP: %d\n", tml, request_id, operation);
-			printf("This is message: %s\n", rec.message.c_str());
+			printf("This is received message: %s\n", rec.message.c_str());
 
 
 			switch(operation) {
@@ -356,26 +351,26 @@ int main(int argc, char *argv[])
 						message_t msg;
 						msg.tml = 3;
 						msg.requestID = request_id;
-						msg.result = consonants;	
+						msg.result = (unsigned long)consonants;	
 						printf("Numconsonants: %d\n", consonants);
 					
 						printf("msg.result: %d\n", msg.result);
 
-						if(send(new_fd, (char*)&msg, sizeof(msg), 0) == -1)
+						if(send(new_fd, &msg, sizeof(msg), 0) == -1)
 							perror("send");
 					} 
 					break;
 				case 80: //disemvoweling
 					{	
 						message_t msg = disemvowel(rec);
-						if(send(new_fd, (char*)&msg, sizeof(msg), 0) == -1)
+						if(send(new_fd, &msg, sizeof(msg), 0) == -1)
 							perror("send");
 					}
 					break;
 				case 10: //uppercasing 
 					{
 						message_t msg = uppercase(rec);
-						if(send(new_fd, (char*)&msg, sizeof(msg), 0) == -1)
+						if(send(new_fd, &msg, sizeof(msg), 0) == -1)
 							perror("send");  
 					}	
 					break;
@@ -386,11 +381,11 @@ int main(int argc, char *argv[])
 			//if (send(new_fd, "Hello, world!", 13, 0) == -1)
 			//	perror("send");
 
-			printf("\nat the end of the big if");
+			//printf("\nat the end of the big if");
 			close(new_fd);
 			exit(0);
 		}
-		printf("I am skipping the if"); 
+		//printf("I am skipping the if"); 
 		close(new_fd);  // parent doesn't need this
 	}
 
