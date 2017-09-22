@@ -65,17 +65,17 @@ class ClientTCP:
          operation = int(operation)
          if operation == 5:
             startTime = time.time()
-            print "Number of consonants in the string \"{}\".".format(s)
+            print "Number of consonants in the string \"{}\"".format(s)
             tml, rid, result = client.cLength(s)
             endTime = time.time()
          elif operation == 80:
             startTime = time.time()
-            print "Disemvowel the string \"{}\".".format(s)
+            print "Disemvowel the string \"{}\"".format(s)
             tml, rid, result = client.Disemvowel(s)
             endTime = time.time()
          elif operation == 10:
             startTime = time.time()
-            print "Uppercase the string \"{}\".".format(s)
+            print "Uppercase the string \"{}\"".format(s)
             tml, rid, result = client.Uppercasing(s)
             endTime = time.time()
          else:
@@ -101,17 +101,17 @@ if __name__ == "__main__":
    client = ClientTCP(servername, portnumber)
    if operation == 5:
       startTime = time.time()
-      print "Number of consonants in the string \"{}\".".format(s)
+      print "Number of consonants in the string \"{}\"".format(s)
       tml, rid, result = client.cLength(s)
       endTime = time.time()
    elif operation == 80:
       startTime = time.time()
-      print "Disemvowel the string \"{}\".".format(s)
+      print "Disemvowel the string \"{}\"".format(s)
       tml, rid, result = client.Disemvowel(s)
       endTime = time.time()
    elif operation == 10:
       startTime = time.time()
-      print "Uppercase the string \"{}\".".format(s)
+      print "Uppercase the string \"{}\"".format(s)
       tml, rid, result = client.Uppercasing(s)
       endTime = time.time()
    else:
