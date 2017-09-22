@@ -84,7 +84,7 @@ if __name__ == "__main__":
    elif operation == 10:
       startTime = time.time()
       print "Uppercase the string \"{}\".".format(s)
-      tml, rid, result = client.Uppercase(s)
+      tml, rid, result = client.Uppercasing(s)
       endTime = time.time()
    else:
       print "Invalid Operation"
