@@ -12,7 +12,10 @@
 #include <cstring>
 #include <ctype.h>
 #include <ServerUDP.h>
+#include <bitset>
 
+#include <algorithm>
+#include <climits>
 using namespace std;
 
 
@@ -64,14 +67,24 @@ void ServerUDP::run(){
       printf("GOT %d BYTES\n",num_byte);
       display(buffer,num_byte);
       // handle this packet
-      ClientRequest req = processRaw(buffer);
+      ClientRequest req;// = processRaw(buffer);
+      req.msgLength = int(buffer[0]);
+      req.requestID = int(buffer[1]);
+      req.operation = int(buffer[2]);
+      string content(&buffer[3], &buffer[3] + req.msgLength-3);
+      req.message = content;
+      req.error = 0;
       if (req.error){
         printf("\n >>>> invalid request:...\n");
       }else{
         Response resp = getResponse(&req);
-        printf("sending response: %s\n",resp.result);
+        printf("sending response: %lu\n",resp.result);
+        printf("sending response: %lui\n",sizeof(resp));
         //then send the response message back to sender;
         sendto(this->sock,&resp,sizeof(resp),0,(struct sockaddr *)&client,sizeof(client));
+        char respchar[sizeof(Response)];
+        memcpy(respchar, &resp, sizeof(Response));
+        display(respchar,(int)sizeof(resp));
         printf("response sent.\n");
       }
       /* Got something, just send it back */
@@ -122,7 +135,19 @@ ServerUDP::Response ServerUDP::getResponse(ClientRequest *req){
   Response res;
   res.tml = response.size() + 2;
   res.requestID = req->requestID;
-  res.result = strtoul(response, NULL, 0);
+
+
+  const size_t MAX = sizeof(unsigned long);
+
+  unsigned long resbin = 0;
+
+  for (size_t i=0; i < std::min(MAX, response.size()); ++i)
+  {
+    resbin <<= CHAR_BIT;
+    resbin += (unsigned char) response[i];
+  }
+  std::cout << std::hex << resbin;
+  res.result = resbin;
   return res;
 
 }
@@ -152,6 +177,7 @@ string ServerUDP::getCLength(string msg){
       isVowel = false;
     }
   }
+  printf("getCLength is [%d]\n", result);
   return to_string(result);
 }
 
@@ -176,8 +202,12 @@ string ServerUDP::disemvoweling(string msg){
         puts("------was consonant------");
       }
       isVowel = false;
+    }else{
+        result += c;
     }
   }
+
+  printf("disemvoweling is [%s]\n", result.c_str());
   return result;
 }
 

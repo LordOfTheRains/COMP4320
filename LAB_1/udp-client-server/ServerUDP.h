@@ -29,7 +29,7 @@ class ServerUDP {
 
     struct Response{
     	unsigned char tml;
-    	unsigned short requestID;
+    	unsigned char requestID;
     	unsigned long result;
     } __attribute__((__packed__)) responseType;
 

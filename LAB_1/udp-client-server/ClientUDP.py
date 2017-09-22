@@ -51,13 +51,15 @@ class ClientUDP:
         self.sock.sendto(msg,self.server_addr)
         #print >>sys.stderr, 'waiting for server response'
         data, server = self.sock.recvfrom(4096)
-        print >>sys.stderr, 'received "%s"' % data
+        for i in data:
+            print hex(ord(i))
+        #print >>sys.stderr, 'received "%b"' % data
         tml = struct.unpack("B", data[0:1])[0]
         rid = struct.unpack("B", data[1:2])[0]
-        response = data[2:]
+        response = data[2:tml]
+        #response =
         print ('---\n')
-        print(bin(response))
-
+        for i in response: print hex(ord(i))
         return tml, rid, response
 
     def get_packed_message(self, msg, ops):
