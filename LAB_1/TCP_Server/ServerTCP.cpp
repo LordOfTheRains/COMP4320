@@ -211,6 +211,7 @@ message_t uppercase(received_t rec) {
 	
 	}
 	
+	printf("Result of uppercase: %s\n", rec.message.c_str());	
 	message_t message; 
 	message.tml = rec.tml;
 	message.requestID = rec.requestID;
@@ -360,21 +361,21 @@ int main(int argc, char *argv[])
 					
 						printf("msg.result: %d\n", msg.result);
 
-						if(send(new_fd, &msg, sizeof(msg), 0) == -1)
+						if(send(new_fd, (char*)&msg, sizeof(msg), 0) == -1)
 							perror("send");
 					} 
 					break;
 				case 80: //disemvoweling
 					{	
 						message_t msg = disemvowel(rec);
-						if(send(new_fd, &msg, sizeof(msg), 0) == -1)
+						if(send(new_fd, (char*)&msg, sizeof(msg), 0) == -1)
 							perror("send");
 					}
 					break;
 				case 10: //uppercasing 
 					{
 						message_t msg = uppercase(rec);
-						if(send(new_fd, &msg, sizeof(msg), 0) == -1)
+						if(send(new_fd, (char*)&msg, sizeof(msg), 0) == -1)
 							perror("send");  
 					}	
 					break;
