@@ -57,6 +57,33 @@ class ClientTCP:
        messageHeader = struct.pack('!B B B',tml,rid,operation)
        message = messageHeader + s
        self.tcpSocket.sendall(message)
+      
+   def run(self):
+      while(1):
+         s = raw_input("Enter operation code: ")
+         operation = raw_input("Enter operation code: ")
+         if operation == 5:
+            startTime = time.time()
+            print "Number of consonants in the string \"{}\".".format(s)
+            tml, rid, result = client.cLength(s)
+            endTime = time.time()
+         elif operation == 80:
+            startTime = time.time()
+            print "Disemvowel the string \"{}\".".format(s)
+            tml, rid, result = client.Disemvowel(s)
+            endTime = time.time()
+         elif operation == 10:
+            startTime = time.time()
+            print "Uppercase the string \"{}\".".format(s)
+            tml, rid, result = client.Uppercase(s)
+            endTime = time.time()
+         else:
+            print "Invalid Operation"
+            sys.exit()
+         print "\nTML: {}".format(tml)
+         print "\nRequestId: {}".format(rid)
+         print "\nResponse: {}".format(result)
+         print "\nRound trip time: {}s".format(endTime-startTime)
 
 #main
 if __name__ == "__main__":
@@ -93,4 +120,5 @@ if __name__ == "__main__":
    print "\nRequestId: {}".format(rid)
    print "\nResponse: {}".format(result)
    print "\nRound trip time: {}s".format(endTime-startTime)
+   client.run()
    sys.exit()
