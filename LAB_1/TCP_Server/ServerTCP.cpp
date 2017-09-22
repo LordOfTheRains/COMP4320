@@ -16,8 +16,13 @@
 #include <signal.h>
 #include <ctype.h>
 #include <iostream>
+#include <string>
 
-#define PORT "10017"  // the port users will be connecting to
+#include <algorithm>
+#include <climits>
+
+using namespace std; 
+//now in commandline #define PORT "10017"  // the port users will be connecting to
 
 #define BACKLOG 10	 // how many pending connections queue will hold
 
@@ -48,26 +53,26 @@ struct message
 {
 	unsigned char tml;
 	unsigned short requestID;
-	unsigned long result; 
+	unsigned long long result; 
 } __attribute__((__packed__)); 
 
 typedef struct message message_t; 
 
 struct received 
 {
-	unsigned char tml;
-	unsigned char requestID;
-	unsigned char operation;
-	unsigned long result;
-} __attribute__((__packed__));
+	int tml;
+	int requestID;
+	int operation;
+	string message;
+	int error;
+};
 typedef struct received received_t;
 
 
-int cLength(char *msg) {
+int cLength(received_t rec) {
 	int consonants = 0;
-	int tml = msg[0] - '0';
-	for(int i = 3; i < tml; i++) {
-		char c = msg[i];
+	for(int i = 0; i < rec.tml-3; i++) {
+		char c = rec.message[i];
 
 		printf("This is c: %c\n",c); 
 
@@ -96,12 +101,10 @@ int cLength(char *msg) {
 	return consonants; 		
 }
 
-int numvowels(char *msg) {
+int numvowels(received_t rec) {
 	int vowels = 0;
-	int tml = msg[0]; 
-	
-	for(int i = 3; i < tml; i++) {
-		char c = msg[i];
+	for(int i = 0; i < rec.tml-3; i++) {
+		char c = rec.message[i];
 		if(isalpha(c)){
 			switch(c){
 				case 'A':
@@ -127,17 +130,30 @@ int numvowels(char *msg) {
 	return vowels; 		
 }
 
-message_t disemvowel(char *msg) {
-	int tml = msg[0]; 
-	int numvowel = numvowels(msg);
-	int length = tml - numvowel - 1;  
-	char *result = (char *) malloc(sizeof(char) * length); 
+unsigned long long toBinary(string msg) {
+	const size_t MAX = sizeof(unsigned long long);
+	reverse(msg.begin(),msg.end());
+	unsigned long long resbin = 0;
 	
-	result[0] = length;
-	result[1] = msg[1]; 
-	int location = 2;
-	for(int i = 3; i < tml; i++){
-		char c = msg[i]; 
+	for (size_t i=0; i < std::min(MAX, msg.size()); ++i){
+		resbin <<= CHAR_BIT;
+		resbin += (unsigned char) msg[i];
+	}
+	std::cout << std::hex << resbin;
+	return resbin; 
+}
+
+message_t disemvowel(received_t rec) {
+	int numvowel = numvowels(rec);
+	
+	printf("In disemvowel, numvowel: %d\n", numvowel); 
+
+	int length = rec.tml - numvowel - 1;  
+	char *result = (char *) malloc(sizeof(char) * (length-1)); 
+	
+	int location = 0;
+	for(int i = 0; i < rec.tml-3; i++){
+		char c = rec.message[i]; 
 		if(isalpha(c)){
 			switch(c){
 				case 'A':
@@ -166,44 +182,56 @@ message_t disemvowel(char *msg) {
 	}
 	
 	message_t message; 
-	message.tml = htons(result[0]);
-	message.requestID = htons(result[1]);
-
-	unsigned long l = 0;
-	for (int i = 3; i < tml; ++i) {
-		l = l | ((unsigned long) result[i] << (8*i)); 
+	message.tml = length;
+	message.requestID = rec.requestID;
+	
+	for(int i = 0; i < length-2; i++){
+		printf("This is char: %c\n", result[i]);
 	}
-	message.result = htonl(l);	
+	
+	//unsigned long l = 0;
+	//for (int i = 0; i < length-2; ++i) {
+	//	l = l | ((unsigned long) result[i] << (8*i)); 
+	//}
+	//message.result = l;
+	result[length] = '\0';
+	string str(result); 
+	printf("This is the converted result to str: %s\n", str.c_str());
+	
+	message.result = toBinary(str);	
 	return message;
-	//return result;
 }
 
-message_t uppercase(char *msg) {
-	int tml = msg[0];
-	for(int i = 3; i < tml; i++){
-		char c = msg[i];
+message_t uppercase(received_t rec) {
+	for(int i = 0; i < rec.tml-3; i++){
+		char c = rec.message[i];
 		if(islower(c)){
-			msg[i] = toupper(c); 
+			rec.message[i] = toupper(c); 
 		}
 	
 	}
 	
+	printf("Result of uppercase: %s\n", rec.message.c_str());	
 	message_t message; 
-	message.tml = htons(msg[0]);
-	message.requestID = htons(msg[1]);
+	message.tml = rec.tml;
+	message.requestID = rec.requestID;
 
-	unsigned long l = 0;
-	for (int i = 3; i < tml; ++i) {
-		l = l | ((unsigned long) msg[i] << (8*i)); 
-	}
-	message.result = htonl(l);	
-	return message;
+	message.result = toBinary(rec.message);	
+}
 
-//	return msg; 
+received_t processRaw(char *msg){
+	received_t rec;
+	rec.tml = int(msg[0]);
+	rec.requestID = int(msg[1]);
+	rec.operation = int(msg[2]);
+	string content(&msg[3], &msg[3] + rec.tml);
+	rec.message = content;
+	rec.error = 0;
+	return rec;
 }
 
 
-int main(void)
+int main(int argc, char *argv[])
 {
 	int sockfd, new_fd;  // listen on sock_fd, new connection on new_fd
 	struct addrinfo hints, *servinfo, *p;
@@ -217,13 +245,18 @@ int main(void)
 	char buf[MAXDATASIZE];
 	int byte_count; 		
 
+	//take in portnumber from commandline
+	if (argc != 2) {
+		fprintf(stderr, "usage: server portnumber\n");
+		exit(1);
+	}
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE; // use my IP
 
-	if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
+	if ((rv = getaddrinfo(NULL, argv[1], &hints, &servinfo)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
 		return 1;
 	}
@@ -290,10 +323,7 @@ int main(void)
 			close(sockfd); // child doesn't need the listener
 
 			//this is the message receiving section			
-			//char buf[256];
-			//int byte_count; 
 		
-				
 			if((byte_count = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1)
 			{
 				perror("recv"); 
@@ -301,52 +331,46 @@ int main(void)
 			}
 			buf[byte_count] = '\0';
 			
-			printf("Here is what I received:%s\n ",buf); 			
 			printf("This is %d bytes\n", byte_count); 		
-			printf("TML: %d\n", int(buf[0]));
 		
-			// message handling
-			int tml = buf[0] - '0'; 
-			int request_id = buf[1] - '0';
-			int operation = buf[2] - '0'; 
-			//int op = int(operation);
+			received_t rec = processRaw(buf); 
+
+			int tml = rec.tml; 
+			int request_id = rec.requestID;
+			int operation = rec.operation;
 			
+
 			printf("This is TML: %d, RID: %d, OP: %d\n", tml, request_id, operation);
+			printf("This is received message: %s\n", rec.message.c_str());
 
 
-
-			for(int i = 0; i < 9; i++) {
-				char x = buf[i];
-				std::cout << x;
-			}	
-	
 			switch(operation) {
 				case 5: //cLength
 					{
-						printf("I am in switch clength\n");
-						int consonants = cLength(buf);
-						//char msg[3] = "3";
-						//msg[1] = request_id;
-						//msg[2] = consonants; 
+						int consonants = cLength(rec);
 						message_t msg;
-						msg.tml = htons(3); 
-						msg.requestID = htons(request_id);
-						msg.result = htonl(consonants);
-						if(send(new_fd, &msg, 3, 0) == -1)
+						msg.tml = 3;
+						msg.requestID = request_id;
+						msg.result = (unsigned long)consonants;	
+						printf("Numconsonants: %d\n", consonants);
+					
+						printf("msg.result: %d\n", msg.result);
+
+						if(send(new_fd, &msg, sizeof(msg), 0) == -1)
 							perror("send");
 					} 
 					break;
 				case 80: //disemvoweling
 					{	
-						message_t msg = disemvowel(buf);
-						if(send(new_fd, &msg, msg.tml, 0) == -1)
+						message_t msg = disemvowel(rec);
+						if(send(new_fd, &msg, sizeof(msg), 0) == -1)
 							perror("send");
 					}
 					break;
 				case 10: //uppercasing 
 					{
-						message_t msg = uppercase(buf);
-						if(send(new_fd, &msg, msg.tml, 0) == -1)
+						message_t msg = uppercase(rec);
+						if(send(new_fd, &msg, sizeof(msg), 0) == -1)
 							perror("send");  
 					}	
 					break;
@@ -357,11 +381,11 @@ int main(void)
 			//if (send(new_fd, "Hello, world!", 13, 0) == -1)
 			//	perror("send");
 
-			printf("\nat the end of the big if");
+			//printf("\nat the end of the big if");
 			close(new_fd);
 			exit(0);
 		}
-		printf("I am skipping the if"); 
+		//printf("I am skipping the if"); 
 		close(new_fd);  // parent doesn't need this
 	}
 

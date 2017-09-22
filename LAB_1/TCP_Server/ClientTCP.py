@@ -24,22 +24,24 @@ class ClientTCP:
 #number of consonants in s
    def cLength(self, s):
        self.sendMessage(5, s)
-       resp = self.receiveMessage(1024)
-       resTML, resRid, resAns = struct.unpack('!B B B', resp[:struct.calcsize('!B B B')])
+       resp = self.receiveMessage(4096)
+       resTML, resRid, resAns = struct.unpack('!B B B', resp[:3])
        return resTML, resRid, resAns
 
 #remove vowels in s
    def Disemvowel(self, s):
        self.sendMessage(80, s)
-       resp = self.receiveMessage(1024)
-       resTML, resRid, resAns = struct.unpack('!B B s', resp[:struct.calcsize('!B B s')])
+       resp = self.receiveMessage(4096)
+       resTML, resRid = struct.unpack('!B B', resp[:2])
+       resAns = str(resp[2:])
        return resTML, resRid, resAns
 
 #change letters in s to uppercase
    def Uppercasing(self, s):
        self.sendMessage(10, s)
-       resp = self.receiveMessage(1024)
-       resTML, resRid, resAns = struct.unpack('!B B s', resp[:struct.calcsize('!B B s')])
+       resp = self.receiveMessage(4096)
+       resTML, resRid = struct.unpack('!B B', resp[:2])
+       resAns = str(resp[2:])
        return resTML, resRid, resAns
 
 #recieve message from server
@@ -49,11 +51,40 @@ class ClientTCP:
 
 #send message to server
    def sendMessage(self, operation, s):
-       tml = 2 + len(s)
+       tml = 3 + len(s)
        rid = ClientTCP.requestID 
        ClientTCP.requestID = ClientTCP.requestID+1
-       messageHeader = struct.pack('!B B B s',tml,rid,operation, s)
+       messageHeader = struct.pack('!B B B',tml,rid,operation)
+       message = messageHeader + s
        self.tcpSocket.sendall(message)
+      
+   def run(self):
+      while(1):
+         s = raw_input("Enter message: ")
+         operation = raw_input("Enter operation code: ")
+         operation = int(operation)
+         if operation == 5:
+            startTime = time.time()
+            print "Number of consonants in the string \"{}\"".format(s)
+            tml, rid, result = client.cLength(s)
+            endTime = time.time()
+         elif operation == 80:
+            startTime = time.time()
+            print "Disemvowel the string \"{}\"".format(s)
+            tml, rid, result = client.Disemvowel(s)
+            endTime = time.time()
+         elif operation == 10:
+            startTime = time.time()
+            print "Uppercase the string \"{}\"".format(s)
+            tml, rid, result = client.Uppercasing(s)
+            endTime = time.time()
+         else:
+            print "Invalid Operation"
+            continue
+         print "\nTML: {}".format(tml)
+         print "\nRequestId: {}".format(rid)
+         print "\nResponse: {}".format(result)
+         print "\nRound trip time: {}s".format(endTime-startTime)
 
 #main
 if __name__ == "__main__":
@@ -70,23 +101,25 @@ if __name__ == "__main__":
    client = ClientTCP(servername, portnumber)
    if operation == 5:
       startTime = time.time()
-      print "Number of consonants in the string \"{}\".".format(s)
-      result = client.cLength(s)
+      print "Number of consonants in the string \"{}\"".format(s)
+      tml, rid, result = self.cLength(s)
       endTime = time.time()
    elif operation == 80:
       startTime = time.time()
-      print "Disemvowel the string \"{}\".".format(s)
-      result = client.Disemvowel(s)
+      print "Disemvowel the string \"{}\"".format(s)
+      tml, rid, result = self.Disemvowel(s)
       endTime = time.time()
    elif operation == 10:
       startTime = time.time()
-      print "Uppercase the string \"{}\".".format(s)
-      result = client.Uppercase(s)
+      print "Uppercase the string \"{}\"".format(s)
+      tml, rid, result = self.Uppercasing(s)
       endTime = time.time()
    else:
       print "Invalid Operation"
       sys.exit()
-   print "\nRequestId: {}".format(result[1])
-   print "\nResponse:  {}".format(result[2])
+   print "\nTML: {}".format(tml)
+   print "\nRequestId: {}".format(rid)
+   print "\nResponse: {}".format(result)
    print "\nRound trip time: {}s".format(endTime-startTime)
+   client.run()
    sys.exit()
