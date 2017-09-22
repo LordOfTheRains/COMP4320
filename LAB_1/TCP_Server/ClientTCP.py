@@ -51,7 +51,7 @@ class ClientTCP:
 
 #send message to server
    def sendMessage(self, operation, s):
-       tml = 2 + len(s)
+       tml = 3 + len(s)
        rid = ClientTCP.requestID 
        ClientTCP.requestID = ClientTCP.requestID+1
        messageHeader = struct.pack('!B B B',tml,rid,operation)
