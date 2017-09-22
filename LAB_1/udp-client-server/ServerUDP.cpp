@@ -211,11 +211,12 @@ string ServerUDP::upperCasing(string msg){
 
 
 unsigned long ServerUDP::toBinary(string msg){
-    const size_t MAX = sizeof(unsigned long long);
+    //const size_t MAX = sizeof(unsigned long long);
     reverse(msg.begin(),msg.end());
-    unsigned long resbin = 0;
+    unsigned long long resbin = 0;
 
-    for (size_t i=0; i < std::min(MAX, msg.size()); ++i)
+    //for (size_t i=0; i < std::min(MAX, msg.size()); ++i)
+    for (size_t i=0; i < msg.size(); ++i)
     {
       resbin <<= CHAR_BIT;
       resbin += (unsigned char) msg[i];
