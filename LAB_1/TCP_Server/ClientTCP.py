@@ -80,7 +80,7 @@ class ClientTCP:
             endTime = time.time()
          else:
             print "Invalid Operation"
-            sys.exit()
+            continue
          print "\nTML: {}".format(tml)
          print "\nRequestId: {}".format(rid)
          print "\nResponse: {}".format(result)
