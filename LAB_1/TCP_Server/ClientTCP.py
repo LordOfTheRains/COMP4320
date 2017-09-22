@@ -62,6 +62,7 @@ class ClientTCP:
       while(1):
          s = raw_input("Enter operation code: ")
          operation = raw_input("Enter operation code: ")
+         operation = int(operation)
          if operation == 5:
             startTime = time.time()
             print "Number of consonants in the string \"{}\".".format(s)
