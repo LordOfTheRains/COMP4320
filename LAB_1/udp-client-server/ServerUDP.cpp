@@ -122,7 +122,7 @@ ServerUDP::Response ServerUDP::getResponse(ClientRequest *req){
       puts("Getting rid of vowels...");
       response = disemvoweling(msg);
       break;
-    case 0x80:// upperCasing
+    case 0x0a:// upperCasing
       puts("Capitalizing everything...");
       response = upperCasing(msg);
       break;
