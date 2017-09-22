@@ -27,24 +27,23 @@ class ServerUDP {
       int error;
     };
 
-
-    struct message
-    {
+    struct Response{
     	unsigned char tml;
-    	unsigned short requestID;
-    	unsigned long result;
-    } __attribute__((__packed__));
+    	unsigned char requestID;
+    	unsigned long long result;
+    } __attribute__((__packed__)) responseType;
 
   private:
 
     int sock; //PORT
     int port;
 
-    ClientRequest processRaw(string msg);
-    string getResponse(ClientRequest *req);
+    ClientRequest processRaw(char *msg);
+    Response getResponse(ClientRequest *req);
     string getCLength(string msg);
     string disemvoweling(string msg);
     string upperCasing(string msg);
+    unsigned long toBinary(string msg);
     void display(char *Buffer, int length);
 };
 
