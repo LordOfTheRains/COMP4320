@@ -78,8 +78,8 @@ void ServerUDP::run(){
         printf("\n >>>> invalid request:...\n");
       }else{
         Response resp = getResponse(&req);
-        printf("sending response: %lu\n",resp.result);
-        printf("sending response: %lui\n",sizeof(resp));
+        printf("\nsending response: %llu\n",resp.result);
+        printf("response size: %lu\n",sizeof(resp));
         //then send the response message back to sender;
         sendto(this->sock,&resp,sizeof(resp),0,(struct sockaddr *)&client,sizeof(client));
         char respchar[sizeof(Response)];
@@ -135,19 +135,7 @@ ServerUDP::Response ServerUDP::getResponse(ClientRequest *req){
   Response res;
   res.tml = response.size() + 2;
   res.requestID = req->requestID;
-
-
-  const size_t MAX = sizeof(unsigned long);
-
-  unsigned long resbin = 0;
-
-  for (size_t i=0; i < std::min(MAX, response.size()); ++i)
-  {
-    resbin <<= CHAR_BIT;
-    resbin += (unsigned char) response[i];
-  }
-  std::cout << std::hex << resbin;
-  res.result = resbin;
+  res.result = toBinary(response);
   return res;
 
 }
@@ -219,6 +207,21 @@ string ServerUDP::upperCasing(string msg){
   for (auto & let: msg) let = toupper(let);
   puts(msg.c_str());
   return msg;
+}
+
+
+unsigned long ServerUDP::toBinary(string msg){
+    const size_t MAX = sizeof(unsigned long long);
+    reverse(msg.begin(),msg.end());
+    unsigned long resbin = 0;
+
+    for (size_t i=0; i < std::min(MAX, msg.size()); ++i)
+    {
+      resbin <<= CHAR_BIT;
+      resbin += (unsigned char) msg[i];
+    }
+    std::cout << std::hex << resbin;
+    return resbin;
 }
 
 void ServerUDP::display(char *Buffer, int length){

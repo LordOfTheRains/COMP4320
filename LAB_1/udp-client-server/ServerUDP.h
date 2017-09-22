@@ -30,7 +30,7 @@ class ServerUDP {
     struct Response{
     	unsigned char tml;
     	unsigned char requestID;
-    	unsigned long result;
+    	unsigned long long result;
     } __attribute__((__packed__)) responseType;
 
   private:
@@ -43,6 +43,7 @@ class ServerUDP {
     string getCLength(string msg);
     string disemvoweling(string msg);
     string upperCasing(string msg);
+    unsigned long toBinary(string msg);
     void display(char *Buffer, int length);
 };
 
