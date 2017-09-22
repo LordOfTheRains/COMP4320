@@ -60,7 +60,7 @@ class ClientTCP:
       
    def run(self):
       while(1):
-         s = raw_input("Enter operation code: ")
+         s = raw_input("Enter message: ")
          operation = raw_input("Enter operation code: ")
          operation = int(operation)
          if operation == 5:
