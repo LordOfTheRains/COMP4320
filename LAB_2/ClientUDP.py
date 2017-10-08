@@ -6,39 +6,37 @@ import struct
 class ClientUDP:
 
     def __init__(self, ip, port):
-        self.request_id = 0
         try:
             self.server_addr = (ip, int(port))
             self.sock = socket(AF_INET, SOCK_DGRAM)
         except ValueError:
             print("invalid port number")
         # do initialization here
-    def execute(self, ops, msg):
+    def execute(self, req_id, hosts):
         try:
-            if ops != 5 and ops != 80 and ops != 10:
-                print ("Invalid Operation Code")
-                print("Operations: [1] - C length; [2] - Disemvowel; [3] - Upcasing")
-                break;
+            req_id = int(req_id)
+            if req_id > -1 and req_id < 256:
+                server_msg = self.get_packed_message(req_id, hosts)
+                server_response  = self.get_response(server_msg)
+                magic, tml, GID = self.unpack_response(server_response)
+                print "\nMAGIC NUM:  {}".format(magic)
+                print "\nTML: {}".format(tml)
+                print "\nGroup ID:  {}".format(GID)
             else:
-                server_msg = self.get_packed_message(message, ops)
-                start_time = time.time()
-                tml, rid, response = self.get_response(server_msg)
-                end_time = time.time()
-                print "\ntml:  {}".format(tml)
-                print "\nRequest ID: {}".format(rid)
-                print "\nResponse:  {}".format(response)
-                print "\nRound trip time: {}s".format(end_time-start_time)
+                print ("Request ID must be between [0-255]")
+                return
+
         except ValueError as ex:
-            print ("operation code must be a number")
+            print ("Request ID must be a number")
             print ex
-            break;
+            return
 
     def run(self):
         while(1):
-            message = raw_input("Enter Message: ")
-            print("Operations: [1] - C length; [2] - Disemvowel; [3] - Upcasing")
-            ops_code = raw_input("Enter operation code: ")
-            self.execute(ops, message)
+            req_id = raw_input("Enter Request ID: ")
+            hosts = raw_input("Enter list of host name seperated by space: ")
+            host_list = hosts.split(" ")
+            self.execute(req_id, host_list)
 
 
     def get_response(self, msg):
@@ -47,49 +45,90 @@ class ClientUDP:
         self.sock.sendto(msg,self.server_addr)
         #print >>sys.stderr, 'waiting for server response'
         data, server = self.sock.recvfrom(4096)
-        for i in data:
-            print hex(ord(i))
-        #print >>sys.stderr, 'received "%b"' % data
-        tml = struct.unpack("B", data[0:1])[0]
-        rid = struct.unpack("B", data[1:2])[0]
-        response = data[2:tml]
-        #response =
-        print ('---\n')
-        for i in response: print hex(ord(i))
-        return tml, rid, response
+        self.print_as_hex(data)
+        return data
 
-    def get_packed_message(self, msg, ops):
+    '''
+    server response format: for valid request
+    0x4a6f7921: 4 bytes
+    Tml: 2 bytes
+    group id: 1 byte
+    checksum: 1 byte
+    request id: 1 byte
+    ip_address(es): 4 bytes/host
+    -------------------------------------------
+    server response format: for invalid request
+    0x4a6f7921: 4 bytes
+    Tml: 2 bytes
+    group id: 1 byte
+    checksum: 1 byte
+    byte error code: 1 byte
+    '''
+
+    def unpack_response(self, data):
+        magic = ntohl(struct.unpack("I", data[0:4])[0])
+        tml = ntohs(struct.unpack("B", data[1:2])[0])
+        GID = ntohs(struct.unpack("B", data[2:3])[0])
+        #response = data[2:tml]
+        #self.print_as_hex(response)
+        return magic, tml, GID
+
+    '''
+    request format: for valid request
+    0x4a6f7921: 4 bytes
+    Tml: 2 bytes
+    group id: 1 byte
+    checksum: 1 byte
+    request id: 1 byte
+    **following field is is a pair and there can be a list of these pairs
+    ** in a single request
+    hostname length: 1 byte
+    hostname(s): variable bytes/host
+    '''
+
+    def get_packed_message(self, req_id, hosts):
         # packet the message to send to server
-        msg_size_byte = len(msg.encode('utf-8'))
-        tml = msg_size_byte + 3
-        ops_code = 0
-        if ops == 5:
-            ops_code = 0x05
-        elif ops == 80: #disemvoweling
-            ops_code = 0x50
-        else:#upcasing
-            ops_code = 0x0a
-        header = struct.pack("!BBB",tml,self.request_id,ops_code)
-        server_msg = header + msg
-        print repr(server_msg)
-        self.request_id = self.request_id+1
+        magic = 0x4a6f7921
+        host_list_size = 0
+        hosts_packed = ""
+        for host in hosts:
+            # get size of the hostname
+            host_length = len(host.encode('utf-8'))
+            # pack size in network order
+            hosts_packed = struct.pack("!B",host_length)
+            # pack the host name
+            hosts_packed = hosts_packed+host
+        tml = sys.getsizeof(hosts_packed) + 9
+        GID = 7
+        checksum = self.get_checksum(hosts) # needes to compute
+
+        header = struct.pack("!IHBBB",magic, tml, GID, checksum, req_id)
+        server_msg = header + hosts_packed
+        print ('---- server response ----\n')
+        self.print_as_hex(server_msg)
         return server_msg
 
+    def get_checksum(self, msg):
+        #TODO compute checksum from given message
+        #TODO should figure out how to compute and what message to use
+        return 1
 
+    def print_as_hex (self, msg_string):
+        print ":".join("{:02x}".format(ord(c)) for c in msg_string)
 
 
 #python ClientUDP.py 127.0.0.0 80
 
 if __name__ == "__main__":
-    if len(sys.argv) != 5 or 2:
-       print "usage: ClientUDP.py [server ip] [server port] [function code] [string]"
+    if len(sys.argv) != 5 and len(sys.argv) != 3:
+       print "usage: ClientUDP.py [server ip] [server port] [Request ID] [Host name list]..."
        sys.exit()
     server_ip = sys.argv[1]
     port = sys.argv[2]
     udpClient = ClientUDP(server_ip,port)
-    if len(sys.argv) == 2:
+    if len(sys.argv) == 3:
         udpClient.run()
     if len(sys.argv) == 5:
-        ops = sys.argv[3]
-        msg = sys.argv[4]
-        udpClient.execute(ops, msg)
+        req_id = sys.argv[3]
+        hosts = sys.argv[4]
+        udpClient.execute(req_id, hosts)
