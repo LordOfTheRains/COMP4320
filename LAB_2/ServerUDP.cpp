@@ -68,22 +68,23 @@ void ServerUDP::run(){
       display(buffer,num_byte);
       // handle this packet
       ClientRequest req;// = processRaw(buffer);
-      req.msgLength = int(buffer[0]);
-      req.requestID = int(buffer[1]);
-      req.operation = int(buffer[2]);
-      string content(&buffer[3], &buffer[3] + req.msgLength-3);
-      req.message = content;
-      req.error = 0;
+      req = processRaw(buffer, num_byte);
       if (req.error){
         printf("\n >>>> invalid request:...\n");
+        InvalidResponse resp;
+        resp.checksum = 0;
+
+        sendto(this->sock,&resp,sizeof(resp),0,(struct sockaddr *)&client,sizeof(client));
+        //add the other info for a invalid request
       }else{
-        Response resp = getResponse(&req);
-        printf("\nsending response: %llu\n",resp.result);
+        printf("\n >>>> processing request:...\n");
+        ValidResponse resp = getResponse(&req);
+        //printf("\nsending response: %llu\n",resp.ipAddresses);
         printf("response size: %lu\n",sizeof(resp));
         //then send the response message back to sender;
         sendto(this->sock,&resp,sizeof(resp),0,(struct sockaddr *)&client,sizeof(client));
-        char respchar[sizeof(Response)];
-        memcpy(respchar, &resp, sizeof(Response));
+        char respchar[sizeof(ValidResponse)];
+        memcpy(respchar, &resp, sizeof(ValidResponse));
         display(respchar,(int)sizeof(resp));
         printf("response sent.\n");
       }
@@ -94,119 +95,65 @@ void ServerUDP::run(){
   close(this->sock);
 }
 
-ServerUDP::ClientRequest ServerUDP::processRaw(char *msg){
+ServerUDP::ClientRequest ServerUDP::processRaw(char *buffer, size_t num_byte){
   ClientRequest req;
-  req.msgLength = int(msg[0]);
-  req.requestID = int(msg[1]);
-  req.operation = int(msg[2]);
-  string content(&msg[3], &msg[3] + req.msgLength);
-  req.message = content;
-  req.error = 0;
+  memcpy(&req.magicNumber, &buffer[0], sizeof(req.magicNumber));
+  req.magicNumber = ntohl(req.magicNumber);
+  memcpy(&req.tml, &buffer[4], sizeof(req.tml));
+  req.tml = ntohs(req.tml);
+  memcpy(&req.GID, &buffer[6], sizeof(req.GID));
+  memcpy(&req.checksum, &buffer[7], sizeof(req.checksum));
+  memcpy(&req.requestID, &buffer[8], sizeof(req.requestID));
+  memcpy(&req.hostInfo, &buffer[9], sizeof(req.hostInfo));
+
+  req.error = 0b0000;
+  if (req.magicNumber != 0x4a6f7921){
+      req.error = req.error | 0b0001;
+      printf("magic number error \n");
+  }
+  if (req.checksum != getChecksum(buffer) ){
+      req.error = req.error | 0b0100;
+      printf("checksum error \n");
+  }
+  if (req.tml != num_byte) {
+      req.error = req.error | 0b0001;
+      printf("tml error \n");
+  }
   return req;
 }
 
 
 // returns the final message ready to be sent back to client
-ServerUDP::Response ServerUDP::getResponse(ClientRequest *req){
-  //int reqID = req->requestID;
-  string msg = req->message;
-  string response;
-  printf("Message is [%s]\n",msg.c_str());
-  printf("Operation is [%d]\n", req->operation);
-  switch(req->operation) {
-    case 0x05: //getCLength
-      puts("Counting number of consonants...");
-      response = getCLength(msg);
-      break;
-    case 0x50: //disemvoweling
-      puts("Getting rid of vowels...");
-      response = disemvoweling(msg);
-      break;
-    case 0x0a:// upperCasing
-      puts("Capitalizing everything...");
-      response = upperCasing(msg);
-      break;
-    default:
-      puts("Operation not supported...");
-      response = "error operation code." + req->operation;
-      break;
-  }
+ServerUDP::ValidResponse ServerUDP::getResponse(ClientRequest *req){
   //pack the result message
-  Response res;
-  res.tml = response.size() + 2;
+  ValidResponse res;
+  res.magicNumber = htonl(0x4a6f7921);
+  res.tml = htons(10);
+  res.GID = 7;
+  res.checksum = 0;
   res.requestID = req->requestID;
-  res.result = toBinary(response);
+  resolveHostnames(req->hostInfo, res.ipAddresses);
+  res.tml = htons(sizeof(res.ipAddresses) + 9);
+  char datagram[sizeof(res)];
+  memcpy(datagram, &res, sizeof(datagram));
+  res.checksum = getChecksum(datagram);
   return res;
 
 }
 
-//returns the number of consonants in msg
-//getCLength("Hello") == "3"
-string ServerUDP::getCLength(string msg){
-  int result = 0;
-  char vowels[] = {'a', 'e', 'i', 'o', 'u', 'y'};
-  bool isVowel = false;
-  // iterate message and see if the letter is vowel
-  // if not vowel, increment result
-
-  for(char& c : msg) {//get each letter
-    if (isalpha(c)) {
-      cout << "One character: " << c << "\n";
-      for (char& v: vowels){//iterate  vowel list
-        //cout << "One vowel: " << v << "\n";
-        if (tolower(c) == v){//letter is a consonant
-          isVowel = true;
-        }
-      }
-      if (!isVowel){
-        result++;
-        puts("------was consonant;");
-      }
-      isVowel = false;
-    }
-  }
-  printf("getCLength is [%d]\n", result);
-  return to_string(result);
+//returns cmputed checksum
+char ServerUDP::getChecksum(char* msg){
+  // do checksum magic
+  return 0;
 }
-
-
-//return message without vowels
-//disemvoweling("Hello") == "HLL"
-string ServerUDP::disemvoweling(string msg){
-  char vowels[] = {'a', 'e', 'i', 'o', 'u', 'y'};
-  string result = "";
-  bool isVowel = false;
-  for(char& c : msg) {//get each letter
-    if (isalpha(c)) {
-      //cout << "One character: " << c << "\n";
-      for (char& v: vowels){//iterate  vowel list
-        //cout << "One vowel: " << v << "\n";
-        if (tolower(c) == v){//letter is a consonant
-          isVowel = true;
-        }
-      }
-      if (!isVowel){
-        result += c;
-        puts("------was consonant------");
-      }
-      isVowel = false;
-    }else{
-        result += c;
-    }
-  }
-
-  printf("disemvoweling is [%s]\n", result.c_str());
-  return result;
-}
-
-
-//return message uppercasing every letter
-// upperCasing("Hello") == "HELLO"
-string ServerUDP::upperCasing(string msg){
-  //string upped[msg.size()];
-  for (auto & let: msg) let = toupper(let);
-  puts(msg.c_str());
-  return msg;
+//return a byte?string of ip address from a string of hosts
+//input might be: "10google.com12facebook.com"
+void ServerUDP::resolveHostnames(char* msg, const  char* ipAddrs){
+  //parse the message to get list of host names off
+  //call hostent * ip = gethostbyname("google.com");
+  string result = "hello";
+  ipAddrs = result.c_str();
+  return;
 }
 
 

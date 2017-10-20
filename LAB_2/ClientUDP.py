@@ -15,13 +15,11 @@ class ClientUDP:
     def execute(self, req_id, hosts):
         try:
             req_id = int(req_id)
-            if req_id > -1 and req_id < 256:
+            if req_id > -1 and req_id < 128:
                 server_msg = self.get_packed_message(req_id, hosts)
                 server_response  = self.get_response(server_msg)
+                #server_response  = "fakenews"
                 magic, tml, GID = self.unpack_response(server_response)
-                print "\nMAGIC NUM:  {}".format(magic)
-                print "\nTML: {}".format(tml)
-                print "\nGroup ID:  {}".format(GID)
             else:
                 print ("Request ID must be between [0-255]")
                 return
@@ -45,6 +43,7 @@ class ClientUDP:
         self.sock.sendto(msg,self.server_addr)
         #print >>sys.stderr, 'waiting for server response'
         data, server = self.sock.recvfrom(4096)
+        print("server response")
         self.print_as_hex(data)
         return data
 
@@ -91,27 +90,33 @@ class ClientUDP:
         magic = 0x4a6f7921
         host_list_size = 0
         hosts_packed = ""
+        host_info_size = 0;
         for host in hosts:
-            # get size of the hostname
-            host_length = len(host.encode('utf-8'))
             # pack size in network order
-            hosts_packed = struct.pack("!B",host_length)
+            host_length = len(host.encode('utf-8'))
+            length_byte = struct.pack("!B",host_length)
+            host_frame = length_byte + host
+            print(host_frame)
+            host_info_size = host_info_size + host_length + 1
             # pack the host name
-            hosts_packed = hosts_packed+host
-        tml = sys.getsizeof(hosts_packed) + 9
+            hosts_packed = hosts_packed + host_frame
+            self.print_as_hex(hosts_packed)
+
+        print ('---- tml check ----\n')
+        tml = host_info_size + 9
         GID = 7
         checksum = self.get_checksum(hosts) # needes to compute
 
         header = struct.pack("!IHBBB",magic, tml, GID, checksum, req_id)
         server_msg = header + hosts_packed
-        print ('---- server response ----\n')
+        print ('---- server message ----\n')
         self.print_as_hex(server_msg)
         return server_msg
 
     def get_checksum(self, msg):
         #TODO compute checksum from given message
         #TODO should figure out how to compute and what message to use
-        return 1
+        return 0
 
     def print_as_hex (self, msg_string):
         print ":".join("{:02x}".format(ord(c)) for c in msg_string)
@@ -120,7 +125,7 @@ class ClientUDP:
 #python ClientUDP.py 127.0.0.0 80
 
 if __name__ == "__main__":
-    if len(sys.argv) != 5 and len(sys.argv) != 3:
+    if len(sys.argv) < 5 and len(sys.argv) != 3:
        print "usage: ClientUDP.py [server ip] [server port] [Request ID] [Host name list]..."
        sys.exit()
     server_ip = sys.argv[1]
@@ -128,7 +133,12 @@ if __name__ == "__main__":
     udpClient = ClientUDP(server_ip,port)
     if len(sys.argv) == 3:
         udpClient.run()
-    if len(sys.argv) == 5:
+    if len(sys.argv) > 4:
         req_id = sys.argv[3]
-        hosts = sys.argv[4]
+        hosts = []
+        num_host = len(sys.argv)
+        for i in range(4,num_host):
+            host = sys.argv[i]
+            print host
+            hosts.append(host)
         udpClient.execute(req_id, hosts)
