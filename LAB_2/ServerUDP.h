@@ -20,40 +20,40 @@ class ServerUDP {
 
 
     struct ClientRequest{
-      unsigned long magicNumber;
-      unsigned short tml;
+      uint32_t magicNumber;
+      uint16_t tml;
       unsigned char GID;
       unsigned char checksum;
       unsigned char requestID;
       char* hostInfo;
-      int error;
+      unsigned char error;
     };
 
     struct ValidResponse{
-        unsigned long magicNumber;
-        unsigned short tml;
+        uint32_t  magicNumber;
+        uint16_t  tml;
         unsigned char GID;
         unsigned char checksum;
         unsigned char requestID;
     	char* ipAddresses;
-    } __attribute__((__packed__)) validResponse;
+    } __attribute__((__packed__));
 
     struct InvalidResponse{
-        unsigned long magicNumber;
-        unsigned short tml;
+        uint32_t  magicNumber;
+        uint16_t tml;
         unsigned char GID;
         unsigned char checksum;
         unsigned char errorCode;
-    } __attribute__((__packed__)) invalidResponse;
+    } __attribute__((__packed__));
   private:
 
     int sock; //PORT
     int port;
 
-    ClientRequest processRaw(char *msg, size_t num_byte);
+    void processRaw(char *msg, size_t num_byte, ClientRequest & result);
     ValidResponse getResponse(ClientRequest *req);
-    char getChecksum(char* msg);
-    void resolveHostnames(char* msg, const  char* ipAddrs);
+    char getChecksum(char* msg, int num_bytes);
+    string resolveHostnames(char* msg, int num_bytes);
     unsigned long toBinary(string msg);
     void display(char *Buffer, int length);
 };

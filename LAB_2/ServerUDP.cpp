@@ -3,6 +3,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
+#include <typeinfo>
 #include <cstdlib>           // For atoi()
 #include <stdexcept>
 #include <unistd.h>
@@ -68,58 +69,81 @@ void ServerUDP::run(){
       display(buffer,num_byte);
       // handle this packet
       ClientRequest req;// = processRaw(buffer);
-      req = processRaw(buffer, num_byte);
+      processRaw(buffer, num_byte,req);
+
       if (req.error){
         printf("\n >>>> invalid request:...\n");
         InvalidResponse resp;
+        resp.magicNumber = htonl(0x4a6f7921);
+        resp.tml = htons(9);
+        resp.GID = 7;
         resp.checksum = 0;
-
-        sendto(this->sock,&resp,sizeof(resp),0,(struct sockaddr *)&client,sizeof(client));
+        resp.errorCode = req.error;
+        sendto(this->sock,&resp,9,0,(struct sockaddr *)&client,sizeof(client));
         //add the other info for a invalid request
       }else{
         printf("\n >>>> processing request:...\n");
-        ValidResponse resp = getResponse(&req);
-        //printf("\nsending response: %llu\n",resp.ipAddresses);
-        printf("response size: %lu\n",sizeof(resp));
+        ValidResponse *res = NULL;
+        string ipstr = resolveHostnames(req.hostInfo, req.tml-9);
+
+        printf("ok.\n");
+        res = (struct ValidResponse *)malloc(sizeof(struct ValidResponse) + ipstr.length());
+        res->magicNumber = htonl(0x4a6f7921);
+        res->tml = htons(10);
+        res->GID = 7;
+        res->checksum = 0;
+        res->requestID = req.requestID;
+        memcpy(&res->ipAddresses, ipstr.c_str(), ipstr.length());
+        res->tml = htons(ipstr.length() + 9);
+        size_t struct_total_length = sizeof (ValidResponse) + ipstr.length();
+        char datagram[struct_total_length] = {0};
+        memcpy(datagram, res, struct_total_length);
+
+        printf("sizeof packed_struct: %ld \n", struct_total_length);
+        printf("----------------Packet Content ---------------\n");
+        display(datagram, sizeof(datagram));
+        res->checksum = getChecksum(datagram, sizeof(datagram));
+        printf("\nsending response: %ld bytes\n",sizeof(res));
         //then send the response message back to sender;
-        sendto(this->sock,&resp,sizeof(resp),0,(struct sockaddr *)&client,sizeof(client));
-        char respchar[sizeof(ValidResponse)];
-        memcpy(respchar, &resp, sizeof(ValidResponse));
-        display(respchar,(int)sizeof(resp));
+        sendto(this->sock,res,struct_total_length,0,(struct sockaddr *)&client,sizeof(client));
         printf("response sent.\n");
+        delete(res);
       }
-      /* Got something, just send it back */
+
 
     }
   }
   close(this->sock);
 }
 
-ServerUDP::ClientRequest ServerUDP::processRaw(char *buffer, size_t num_byte){
-  ClientRequest req;
-  memcpy(&req.magicNumber, &buffer[0], sizeof(req.magicNumber));
-  req.magicNumber = ntohl(req.magicNumber);
-  memcpy(&req.tml, &buffer[4], sizeof(req.tml));
-  req.tml = ntohs(req.tml);
-  memcpy(&req.GID, &buffer[6], sizeof(req.GID));
-  memcpy(&req.checksum, &buffer[7], sizeof(req.checksum));
-  memcpy(&req.requestID, &buffer[8], sizeof(req.requestID));
-  memcpy(&req.hostInfo, &buffer[9], sizeof(req.hostInfo));
-
-  req.error = 0b0000;
-  if (req.magicNumber != 0x4a6f7921){
-      req.error = req.error | 0b0001;
+void ServerUDP::processRaw(char *buffer, size_t num_byte, ClientRequest& result){
+  printf("\n------------- parsing raw data ---------------------\n");
+  memcpy(&result.magicNumber, &buffer[0], sizeof(result.magicNumber));
+  result.magicNumber = ntohl(result.magicNumber);
+  memcpy(&result.tml, &buffer[4], sizeof(result.tml));
+  result.tml = ntohs(result.tml);
+  memcpy(&result.GID, &buffer[6], sizeof(result.GID));
+  memcpy(&result.checksum, &buffer[7], sizeof(result.checksum));
+  memcpy(&result.requestID, &buffer[8], sizeof(result.requestID));
+  char hosts[ result.tml-9];
+  memcpy(hosts, &buffer[9], result.tml-9);
+  strcpy(result.hostInfo, hosts);
+  result.error = 0b0000;
+  if (result.magicNumber != 0x4a6f7921){
+      result.error = result.error | 0b0001;
       printf("magic number error \n");
   }
-  if (req.checksum != getChecksum(buffer) ){
-      req.error = req.error | 0b0100;
+  if (result.checksum != getChecksum(buffer, int(num_byte)) ){
+      result.error = result.error | 0b0100;
       printf("checksum error \n");
   }
-  if (req.tml != num_byte) {
-      req.error = req.error | 0b0001;
+  if (result.tml != num_byte) {
+      result.error = result.error | 0b0001;
       printf("tml error \n");
   }
-  return req;
+  free(hosts);
+  printf("\n------------- parsing raw data completed ---------------------\n");
+  return;
 }
 
 
@@ -132,28 +156,37 @@ ServerUDP::ValidResponse ServerUDP::getResponse(ClientRequest *req){
   res.GID = 7;
   res.checksum = 0;
   res.requestID = req->requestID;
-  resolveHostnames(req->hostInfo, res.ipAddresses);
-  res.tml = htons(sizeof(res.ipAddresses) + 9);
-  char datagram[sizeof(res)];
-  memcpy(datagram, &res, sizeof(datagram));
-  res.checksum = getChecksum(datagram);
+  cout <<  res.ipAddresses << endl;
   return res;
 
 }
 
 //returns cmputed checksum
-char ServerUDP::getChecksum(char* msg){
+char ServerUDP::getChecksum(char* msg, int num_bytes){
+  printf("\n--------- Compute Checksum --------- \n");
+  int currentByte = 0;
+  while (currentByte < num_bytes){
+    printf("%2x: ",  msg[currentByte]);
+    currentByte++;
+  }
   // do checksum magic
+
+  printf("\n--------- Compute Checksum --------- \n");
   return 0;
 }
 //return a byte?string of ip address from a string of hosts
 //input might be: "10google.com12facebook.com"
-void ServerUDP::resolveHostnames(char* msg, const  char* ipAddrs){
+string ServerUDP::resolveHostnames(char* msg, int num_bytes){
+  printf("\n---------resolving host names-----------\n");
   //parse the message to get list of host names off
   //call hostent * ip = gethostbyname("google.com");
-  string result = "hello";
-  ipAddrs = result.c_str();
-  return;
+  int currentByte = 0;
+  while (currentByte < num_bytes){
+    printf("%2x: ", msg[currentByte]);
+    currentByte++;
+  }
+  printf("\n---------host names resolved--------------\n");
+  return "hellno";
 }
 
 

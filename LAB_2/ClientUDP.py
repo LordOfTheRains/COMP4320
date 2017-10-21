@@ -19,7 +19,7 @@ class ClientUDP:
                 server_msg = self.get_packed_message(req_id, hosts)
                 server_response  = self.get_response(server_msg)
                 #server_response  = "fakenews"
-                magic, tml, GID = self.unpack_response(server_response)
+                magic, tml, GID, checksum, rid, ips = self.unpack_response(server_response)
             else:
                 print ("Request ID must be between [0-255]")
                 return
@@ -43,8 +43,13 @@ class ClientUDP:
         self.sock.sendto(msg,self.server_addr)
         #print >>sys.stderr, 'waiting for server response'
         data, server = self.sock.recvfrom(4096)
-        print("server response")
+        print("server raw response")
         self.print_as_hex(data)
+
+        magic, tml, GID, checksum, rid, ips = self.unpack_response(data)
+        print("server packed response")
+        self.print_as_hex(data)
+
         return data
 
     '''
@@ -65,12 +70,27 @@ class ClientUDP:
     '''
 
     def unpack_response(self, data):
-        magic = ntohl(struct.unpack("I", data[0:4])[0])
-        tml = ntohs(struct.unpack("B", data[1:2])[0])
-        GID = ntohs(struct.unpack("B", data[2:3])[0])
-        #response = data[2:tml]
-        #self.print_as_hex(response)
-        return magic, tml, GID
+        print(len(data))
+        if len(data) > 9:
+            magic, tml, GID, checksum, rid= struct.unpack_from("!LHBBB", data[0:])
+            response_size = tml - 9
+            unpack_f = "!LHBBB" + str(response_size)+ "s"
+            print (unpack_f)
+            magic, tml, GID, checksum, rid, ips= struct.unpack_from(unpack_f, data[0:])
+            print ("Magic Number:")
+            print (hex(magic))
+            print ("tml:")
+            print(hex(tml))
+            print ("GID:")
+            print(hex(GID))
+            print ("checksum:")
+            print(hex(checksum))
+            print ("rid:")
+            print(hex(rid))
+            print ("ips:")
+            print (ips)
+            return magic, tml, GID, checksum, rid, ips
+        return 0, 0, 0, 0, 0, 0
 
     '''
     request format: for valid request
@@ -96,7 +116,6 @@ class ClientUDP:
             host_length = len(host.encode('utf-8'))
             length_byte = struct.pack("!B",host_length)
             host_frame = length_byte + host
-            print(host_frame)
             host_info_size = host_info_size + host_length + 1
             # pack the host name
             hosts_packed = hosts_packed + host_frame
