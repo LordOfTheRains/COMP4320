@@ -125,7 +125,7 @@ void ServerUDP::processRaw(char *buffer, size_t num_byte, ClientRequest& result)
   memcpy(&result.GID, &buffer[6], sizeof(result.GID));
   memcpy(&result.checksum, &buffer[7], sizeof(result.checksum));
   memcpy(&result.requestID, &buffer[8], sizeof(result.requestID));
-  char hosts[ result.tml-9];
+  char hosts[result.tml-9];
   memcpy(hosts, &buffer[9], result.tml-9);
   strcpy(result.hostInfo, hosts);
   result.error = 0b0000;
@@ -141,7 +141,6 @@ void ServerUDP::processRaw(char *buffer, size_t num_byte, ClientRequest& result)
       result.error = result.error | 0b0001;
       printf("tml error \n");
   }
-  free(hosts);
   printf("\n------------- parsing raw data completed ---------------------\n");
   return;
 }
