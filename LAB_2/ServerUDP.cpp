@@ -170,6 +170,14 @@ char ServerUDP::getChecksum(char* msg, int num_bytes){
   }
   // do checksum magic
 
+	int currentSum = 0;
+	for(int i = 0; i < num_bytes; i++){
+		currentSum += msg[i];
+		//handle carry
+	}
+	//print sum
+
+
   printf("\n--------- Compute Checksum --------- \n");
   return 0;
 }
