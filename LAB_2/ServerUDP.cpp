@@ -198,12 +198,20 @@ string ServerUDP::resolveHostnames(char* msg, int num_bytes){
   //parse the message to get list of host names off
   //call hostent * ip = gethostbyname("google.com");
   int currentByte = 0;
+  struct hostent *he;
+  struct in_addr **addr_list;
+  string ipstr = NULL;
   while (currentByte < num_bytes){
     printf("%2x: ", msg[currentByte]);
+    if ((he = gethostbyname(msg[currentByte])) == NULL) {
+      printf("Failed to find hostname");
+    }
+    addr_list = (struct in_addr **)he->h_addr_list;
+    ipstr += inet_ntoa(*addr_list[currentByte]);
     currentByte++;
   }
   printf("\n---------host names resolved--------------\n");
-  return "hellno";
+  return ipstr;
 }
 
 
