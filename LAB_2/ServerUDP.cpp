@@ -169,17 +169,27 @@ char ServerUDP::getChecksum(char* msg, int num_bytes){
     currentByte++;
   }
   // do checksum magic
-
+	//set current checksum to 0
+	msg[7] = 0; 
+	
+	//sum all bytes
 	int currentSum = 0;
 	for(int i = 0; i < num_bytes; i++){
 		currentSum += msg[i];
 		//handle carry
+		if(currentSum > 255){
+			currentSum = currentSum - 256 + 1;
+		} 
 	}
 	//print sum
-
+	printf("Sum result: %d", currentSum); 
+	
+	//bitwise one complement of sum
+	unsigned int compSum = (unsigned int) ~currentSum & 0xff; 
+	char finalSum = (char) compSum; 		
 
   printf("\n--------- Compute Checksum --------- \n");
-  return 0;
+  return finalSum;
 }
 //return a byte?string of ip address from a string of hosts
 //input might be: "10google.com12facebook.com"
