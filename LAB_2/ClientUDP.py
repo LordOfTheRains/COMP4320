@@ -141,12 +141,13 @@ class ClientUDP:
     def get_checksum(self, msg, tml):
         #TODO verify checksum is calculated correctly
         currentsum = 0;
+	array = bytearray(msg)
 	for x in range(0, tml):
-		currentsum += msg[x];
-		if(currentsum > 255)
+		currentsum += int(array[x]);
+		if currentsum > 255:
 			currentsum = currentsum - 256 + 1
 
-	checksum = ~currentsum
+	checksum = ~currentsum & 0xff
 	return checksum
 
     def print_as_hex (self, msg_string):
