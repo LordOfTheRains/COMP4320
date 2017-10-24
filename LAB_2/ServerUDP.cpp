@@ -126,7 +126,7 @@ void ServerUDP::run(){
         memcpy(&res->ipAddresses, ipstr.c_str(), ipstr.length());
         size_t struct_total_length = sizeof (ValidResponse) + ipstr.length();
         char datagram[struct_total_length] = {0};
-        memcpy(datagram, res, struct_total_length);
+	memcpy(datagram, res, struct_total_length);
 
         printf("----------------Packet Content(%ld bytes) --------------- \n", struct_total_length);
         display(datagram, sizeof(datagram));
@@ -163,7 +163,9 @@ void ServerUDP::processRaw(char *rawpacket, size_t num_byte, struct ClientReques
       printf("magic number error \n");
   }
   //if (result.checksum != getChecksum(buffer, int(num_byte)) ){
-  if (result->checksum != result->checksum){
+  //if (result->checksum != result->checksum){
+  rawpacket[7] = 0; //set checksum to 0 for calculation
+  if(result->checksum != getChecksum(rawpacket, int(num_byte)) ) {
       result->error = result->error | 0b0100;
       printf("checksum error \n");
   }
@@ -199,9 +201,7 @@ char ServerUDP::getChecksum(char* msg, int num_bytes){
     currentByte++;
   }
   // do checksum magic
-	//set current checksum to 0
-	//msg[7] = 0;
-
+	//assume the checksum is set to 0 prior to this function
 	//sum all bytes
 	int currentSum = 0;
 	for(int i = 0; i < num_bytes; i++){
@@ -219,8 +219,8 @@ char ServerUDP::getChecksum(char* msg, int num_bytes){
 	char finalSum = (char) compSum;
 
   printf("\n--------- Compute Checksum --------- \n");
-  //return finalSum;
-  return 0;
+  return finalSum;
+  //return 0;
 }
 //return a byte?string of ip address from a string of hosts
 //input might be: "10google.com12facebook.com"
