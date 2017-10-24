@@ -1,4 +1,4 @@
-CC=g++ -std=c++11
+CC=g++ -g -std=c++11
 INC_DIR = ./
 CFLAGS=-c -Wall -I$(INC_DIR)
 DEPS = $(DEPS)*.h

@@ -25,7 +25,7 @@ class ServerUDP {
       unsigned char GID;
       unsigned char checksum;
       unsigned char requestID;
-      char* hostInfo;
+      char* hostList;
       unsigned char error;
     };
 
@@ -50,7 +50,7 @@ class ServerUDP {
     int sock; //PORT
     int port;
 
-    void processRaw(char *msg, size_t num_byte, ClientRequest & result);
+    void processRaw(char *msg, size_t num_byte, struct ClientRequest* result);
     ValidResponse getResponse(ClientRequest *req);
     char getChecksum(char* msg, int num_bytes);
     string resolveHostnames(char* msg, int num_bytes);
