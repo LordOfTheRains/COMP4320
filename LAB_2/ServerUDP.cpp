@@ -20,7 +20,7 @@
 using namespace std;
 
 
-#define BUF_SIZE 1024
+#define BUF_SIZE 4096
 
 ServerUDP::ServerUDP(int port){
   if ((this->sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -49,65 +49,67 @@ void ServerUDP::run(){
 
     int num_byte;
     socklen_t addr_len;
-    char buffer[BUF_SIZE];
+    ClientRequest clientReq;
     struct sockaddr_in client;
 // run the server continuously.
 //not sure if i need to fork for udp if new connection detected.
   while (1) {
     addr_len = sizeof(client);
     /* read a datagram from the socket (put result in bufin) */
-    num_byte=recvfrom(this->sock,buffer,BUF_SIZE,0,(struct sockaddr *)&client,&addr_len);
+    num_byte=recvfrom(this->sock,&clientReq,sizeof(clientReq),0,(struct sockaddr *)&client,&addr_len);
 
     /* print out the address of the sender */
+
     printf("Got a datagram from %s port %d\n",
            inet_ntoa(client.sin_addr), ntohs(client.sin_port));
-
+    printf("Magic: %08x\nTML: %04x \n GID: %2x\nchecksum: %2x\nrequestID: %2x\n",
+                                    clientReq.magicNumber,
+                                    clientReq.tml,
+                                    clientReq.GID,
+                                    clientReq.checksum,
+                                    clientReq.requestID);
     if (num_byte<0) {
       perror("Error receiving data");
     } else {
       printf("GOT %d BYTES\n",num_byte);
-      display(buffer,num_byte);
-      // handle this packet
-      ClientRequest req;// = processRaw(buffer);
-      processRaw(buffer, num_byte,req);
-
-      if (req.error){
+      processRaw(num_byte, &clientReq);
+      if (clientReq.error){
         printf("\n >>>> invalid request:...\n");
         InvalidResponse resp;
         resp.magicNumber = htonl(0x4a6f7921);
         resp.tml = htons(9);
+        printf("tml %d BYTES\n",num_byte);
         resp.GID = 7;
         resp.checksum = 0;
-        resp.errorCode = req.error;
+        resp.errorCode = clientReq.error;
+        printf("----------------Invalid Response Content (%d bytes)---------------\n", 9);
+        resp.checksum = getChecksum(&resp, sizeof(resp));
         sendto(this->sock,&resp,9,0,(struct sockaddr *)&client,sizeof(client));
-        //add the other info for a invalid request
+        printf("Invalid response sent.\n");
       }else{
         printf("\n >>>> processing request:...\n");
         ValidResponse *res = NULL;
-        string ipstr = resolveHostnames(req.hostInfo, req.tml-9);
-
+        string ipstr = resolveHostnames(clientReq.hostList, clientReq.tml-9);
         printf("ok.\n");
+        int packetSize = ipstr.length() + 9;
         res = (struct ValidResponse *)malloc(sizeof(struct ValidResponse) + ipstr.length());
         res->magicNumber = htonl(0x4a6f7921);
-        res->tml = htons(10);
+        res->tml = htons(packetSize);
         res->GID = 7;
         res->checksum = 0;
-        res->requestID = req.requestID;
+        res->requestID = clientReq.requestID;
         memcpy(&res->ipAddresses, ipstr.c_str(), ipstr.length());
-        res->tml = htons(ipstr.length() + 9);
-        size_t struct_total_length = sizeof (ValidResponse) + ipstr.length();
-        char datagram[struct_total_length] = {0};
-        memcpy(datagram, res, struct_total_length);
-
-        printf("sizeof packed_struct: %ld \n", struct_total_length);
-        printf("----------------Packet Content ---------------\n");
+        char datagram[packetSize] = {0};
+        memcpy(datagram, res, packetSize);
+        printf("----------------Packet Content(%d bytes) --------------- \n", packetSize);
         display(datagram, sizeof(datagram));
         res->checksum = getChecksum(datagram, sizeof(datagram));
         printf("\nsending response: %ld bytes\n",sizeof(res));
         //then send the response message back to sender;
-        sendto(this->sock,res,struct_total_length,0,(struct sockaddr *)&client,sizeof(client));
+        sendto(this->sock,res,packetSize,0,(struct sockaddr *)&client,sizeof(client));
         printf("response sent.\n");
-        delete(res);
+        free(res);
+        res = NULL;
       }
 
 
@@ -116,36 +118,38 @@ void ServerUDP::run(){
   close(this->sock);
 }
 
-void ServerUDP::processRaw(char *buffer, size_t num_byte, ClientRequest& result){
+void ServerUDP::processRaw(size_t num_bytes,struct ClientRequest* result){
   printf("\n------------- parsing raw data ---------------------\n");
-  memcpy(&result.magicNumber, &buffer[0], sizeof(result.magicNumber));
-  result.magicNumber = ntohl(result.magicNumber);
-  memcpy(&result.tml, &buffer[4], sizeof(result.tml));
-  result.tml = ntohs(result.tml);
-  memcpy(&result.GID, &buffer[6], sizeof(result.GID));
-  memcpy(&result.checksum, &buffer[7], sizeof(result.checksum));
-  memcpy(&result.requestID, &buffer[8], sizeof(result.requestID));
-  char hosts[result.tml-9];
-  memcpy(hosts, &buffer[9], result.tml-9);
-  strcpy(result.hostInfo, hosts);
-  result.error = 0b0000;
-  if (result.magicNumber != 0x4a6f7921){
-      result.error = result.error | 0b0001;
+  result->magicNumber = ntohl(result->magicNumber);
+  result->tml = ntohs(result->tml);
+  result->error = 0b0000;
+  if (result->magicNumber != 0x4a6f7921){
+      result->error = result->error | 0b0001;
       printf("magic number error \n");
   }
-  if (result.checksum != getChecksum(buffer, int(num_byte)) ){
-      result.error = result.error | 0b0100;
+  char checksum = result->checksum;
+  printf("checksum: %x2", checksum);
+  result->checksum = 0;
+  if ( checksum != getChecksum(result, int(num_bytes)) ){
+      result->error = result->error | 0b0100;
       printf("checksum error \n");
   }
-  if (result.tml != num_byte) {
-      result.error = result.error | 0b0001;
+  if (result->tml != num_bytes) {
+      result->error = result->error | 0b0001;
       printf("tml error \n");
   }
+  printf("Magic: %08x\nTML: %04x \n GID: %2x\nchecksum: %2x\nrequestID: %2x\n",
+                                  result->magicNumber,
+                                  result->tml,
+                                  result->GID,
+                                  result->checksum,
+                                  result->requestID);
   printf("\n------------- parsing raw data completed ---------------------\n");
   return;
 }
 
 
+//not being used
 // returns the final message ready to be sent back to client
 ServerUDP::ValidResponse ServerUDP::getResponse(ClientRequest *req){
   //pack the result message
@@ -157,35 +161,77 @@ ServerUDP::ValidResponse ServerUDP::getResponse(ClientRequest *req){
   res.requestID = req->requestID;
   cout <<  res.ipAddresses << endl;
   return res;
-
 }
 
 //returns cmputed checksum
-char ServerUDP::getChecksum(char* msg, int num_bytes){
+char ServerUDP::getChecksum(void* msg, int num_bytes){
   printf("\n--------- Compute Checksum --------- \n");
+  char* check_data = (char*)msg;
   int currentByte = 0;
   while (currentByte < num_bytes){
-    printf("%2x: ",  msg[currentByte]);
+    printf("%2x: ",  check_data[currentByte]);
     currentByte++;
   }
   // do checksum magic
+	//assume the checksum is set to 0 prior to this function
+	//sum all bytes
+	int currentSum = 0;
+	for(int i = 0; i < num_bytes; i++){
+		currentSum += check_data[i];
+		//handle carry
+		if(currentSum > 255){
+			currentSum = currentSum - 256 + 1;
+		}
+	}
+	//print sum
+	printf("\nSum result: %d\n", currentSum);
 
+	//bitwise one complement of sum
+	unsigned int compSum = (unsigned int) ~currentSum & 0xff;
+	char finalSum = (char) compSum;
+  printf("checksum: %2x: ",  finalSum);
   printf("\n--------- Compute Checksum --------- \n");
-  return 0;
+  return finalSum;
 }
 //return a byte?string of ip address from a string of hosts
 //input might be: "10google.com12facebook.com"
 string ServerUDP::resolveHostnames(char* msg, int num_bytes){
   printf("\n---------resolving host names-----------\n");
-  //parse the message to get list of host names off
-  //call hostent * ip = gethostbyname("google.com");
   int currentByte = 0;
   while (currentByte < num_bytes){
-    printf("%2x: ", msg[currentByte]);
-    currentByte++;
+
+      int host_size = 0;
+      memcpy(&host_size, &msg[currentByte], 1);
+      printf("current host_size is: %d: \n", host_size);
+      char hostname[host_size+1];
+      memcpy(&hostname, &msg[currentByte+1], host_size);
+      display(hostname, host_size);
+      //TODO
+      // do host name stuiff here, ref to fake google example below
+      //gethostbyname takes a nullterminating char*, so take the bytes out and
+      // add null terminating byte to the end before passing in to get the host name out.
+      //the result ip needs to be consective hex bytes
+
+      currentByte+= host_size+1;
   }
-  printf("\n---------host names resolved--------------\n");
-  return "hellno";
+  string fakename= "google.com";
+  struct hostent *hp = gethostbyname(fakename.c_str());
+  struct in_addr *ip_addr;
+    if (hp == NULL) {
+       printf("gethostbyname() failed\n");
+    } else {
+       printf("%s = ", hp->h_name);
+       if ( hp -> h_addr_list[0] != NULL) {
+           ip_addr = ( struct in_addr*)( hp -> h_addr_list[0]);
+           char* ip = inet_ntoa( *( struct in_addr*)( hp -> h_addr_list[0]));
+           printf("%8x \n", ip_addr->s_addr);
+           printf( "%s -",ip );
+       }
+       printf("\n");
+    }
+
+      printf("\n---------host names resolved--------------\n");
+  return "hello, my name is lab 2, can you hear me";
 }
 
 
