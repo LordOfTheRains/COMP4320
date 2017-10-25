@@ -20,7 +20,8 @@ clean:
 	    rm -rf *o all
 
 run_server:
+		make
 	   ./demo 10017
 
 run_client:
-		python ClientUDP.py 0.0.0.0 10017
+	python ClientUDP.py 0.0.0.0 10017 120 google.com facebook.com jinx.com
