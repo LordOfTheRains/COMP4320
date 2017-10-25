@@ -128,11 +128,11 @@ class ClientUDP:
 
         header = struct.pack("!IHBBB",magic, tml, GID, checksum, req_id)
 	server_msg = header + hosts_packed
-	
+
 	checksum = self.get_checksum(server_msg, tml) #compute checksum then repack
 
 	header = struct.pack("!IHBBB",magic, tml, GID, checksum, req_id)
-	server_msg = header + hosts_packed	
+	server_msg = header + hosts_packed
 
         print ('---- server message ----\n')
         self.print_as_hex(server_msg)
@@ -141,11 +141,11 @@ class ClientUDP:
     def get_checksum(self, msg, tml):
         #TODO verify checksum is calculated correctly
         currentsum = 0;
-	array = bytearray(msg)
-	for x in range(0, tml):
-		currentsum += int(array[x]);
-		if currentsum > 255:
-			currentsum = currentsum - 256 + 1
+        array = bytearray(msg)
+        for x in range(0, tml):
+            currentsum += int(array[x]);
+            if currentsum > 255:
+                currentsum = currentsum - 256 + 1
 
 	checksum = ~currentsum & 0xff
 	return checksum

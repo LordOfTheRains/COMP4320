@@ -25,7 +25,7 @@ class ServerUDP {
       unsigned char GID;
       unsigned char checksum;
       unsigned char requestID;
-      char* hostList;
+      char hostList[4096];
       unsigned char error;
     };
 
@@ -35,7 +35,7 @@ class ServerUDP {
         unsigned char GID;
         unsigned char checksum;
         unsigned char requestID;
-    	char* ipAddresses;
+    	char ipAddresses[4096];
     } __attribute__((__packed__));
 
     struct InvalidResponse{
@@ -50,9 +50,9 @@ class ServerUDP {
     int sock; //PORT
     int port;
 
-    void processRaw(char *msg, size_t num_byte, struct ClientRequest* result);
+    void processRaw(size_t num_bytes, struct ClientRequest* result);
     ValidResponse getResponse(ClientRequest *req);
-    char getChecksum(char* msg, int num_bytes);
+    char getChecksum(void* msg, int num_bytes);
     string resolveHostnames(char* msg, int num_bytes);
     unsigned long toBinary(string msg);
     void display(char *Buffer, int length);
