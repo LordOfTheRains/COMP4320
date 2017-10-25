@@ -131,6 +131,7 @@ void ServerUDP::processRaw(size_t num_bytes,struct ClientRequest* result){
       result->error = result->error | 0b0001;
       printf("tml error \n");
   }
+  result->checksum = checksum;
   printf("Magic: %08x\nTML: %04x \n GID: %2x\nchecksum: %2x\nrequestID: %2x\n",
                                   result->magicNumber,
                                   result->tml,

@@ -18,7 +18,9 @@ class ClientUDP:
             if req_id > -1 and req_id < 128:
                 server_msg = self.get_packed_message(req_id, hosts)
                 server_response  = self.get_response(server_msg)
-                #server_response  = "fakenews"
+                if server_response == 0:
+			return
+		#server_response  = "fakenews"
                 magic, tml, GID, checksum, rid, ips = self.unpack_response(server_response)
             else:
                 print ("Request ID must be between [0-255]")
@@ -39,13 +41,37 @@ class ClientUDP:
 
     def get_response(self, msg):
 
-        #print(self.server_addr)
-        self.sock.sendto(msg,self.server_addr)
-        #print >>sys.stderr, 'waiting for server response'
-        data, server = self.sock.recvfrom(4096)
-        print("server raw response")
-        self.print_as_hex(data)
-
+        invalid = 1
+	trials = 0
+	while invalid and trials < 7:
+	    trials = trials + 1
+	    #print(self.server_addr)
+            self.sock.sendto(msg,self.server_addr)
+            #print >>sys.stderr, 'waiting for server response'
+            data, server = self.sock.recvfrom(4096)
+            print("server raw response")
+            self.print_as_hex(data)
+	
+	    if len(data) == 7 :
+		magic, tml, GID, checksum, bec = self.unpack_invalid_response(data) 
+		print("Validate response: received error code from server. Retransmitting")
+	    elif len(data) < 9:
+                #invalid response
+		print("Validate response: received invalid response. Retransmitting")
+	    elif len(data) > 9:
+	        magic, tml, GID, checksum, rid, ips = self.unpack_response(data)
+         	check = self.get_checksum(data, tml)
+		print("Validate response check: ")
+		print(check)
+		if check == 255:
+		    invalid = 0
+		else: 
+		    print("Validate response: received invalid response. Retransmitting")
+	
+	if invalid and trials == 7: 
+	     print("No  valid response after 7 trials.")
+	     return 0 
+		
         magic, tml, GID, checksum, rid, ips = self.unpack_response(data)
         print("server packed response")
         self.print_as_hex(data)
@@ -91,6 +117,22 @@ class ClientUDP:
             print (ips)
             return magic, tml, GID, checksum, rid, ips
         return 0, 0, 0, 0, 0, 0
+
+    def unpack_invalid_response(self, data):
+	print(len(data))
+	magic, tml, GID, checksum, bec = struct.unpack_from("!LHBBB", data[0:])
+	print("-------Invalid Response-------")
+	print ("Magic Number:")
+        print (hex(magic))
+        print ("tml:")
+        print(hex(tml))
+        print ("GID:")
+        print(hex(GID))
+        print ("checksum:")
+        print(hex(checksum))
+        print ("bec:")
+        print(hex(bec))
+	return magic, tml, GID, checksum, bec 
 
     '''
     request format: for valid request
@@ -153,6 +195,8 @@ class ClientUDP:
     def print_as_hex (self, msg_string):
         print ":".join("{:02x}".format(ord(c)) for c in msg_string)
 
+    def validate_response(self, server_msg):
+	magic, tml, GID, checksum, rid, ips = self.unpack_response(server_msg)
 
 #python ClientUDP.py 127.0.0.0 80
 
