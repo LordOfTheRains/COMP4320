@@ -173,9 +173,7 @@ char ServerUDP::getChecksum(void* msg, int num_bytes){
     currentByte++;
   }
   // do checksum magic
-	//set current checksum to 0
-	//msg[7] = 0;
-
+	//assume the checksum is set to 0 prior to this function
 	//sum all bytes
 	int currentSum = 0;
 	for(int i = 0; i < num_bytes; i++){
