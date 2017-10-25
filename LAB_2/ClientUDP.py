@@ -124,18 +124,31 @@ class ClientUDP:
         print ('---- tml check ----\n')
         tml = host_info_size + 9
         GID = 7
-        checksum = self.get_checksum(hosts) # needes to compute
+        checksum = 0 # set to zero to compute
 
         header = struct.pack("!IHBBB",magic, tml, GID, checksum, req_id)
-        server_msg = header + hosts_packed
+	server_msg = header + hosts_packed
+
+	checksum = self.get_checksum(server_msg, tml) #compute checksum then repack
+
+	header = struct.pack("!IHBBB",magic, tml, GID, checksum, req_id)
+	server_msg = header + hosts_packed
+
         print ('---- server message ----\n')
         self.print_as_hex(server_msg)
         return server_msg
 
-    def get_checksum(self, msg):
-        #TODO compute checksum from given message
-        #TODO should figure out how to compute and what message to use
-        return 0
+    def get_checksum(self, msg, tml):
+        #TODO verify checksum is calculated correctly
+        currentsum = 0;
+        array = bytearray(msg)
+        for x in range(0, tml):
+            currentsum += int(array[x]);
+            if currentsum > 255:
+                currentsum = currentsum - 256 + 1
+
+	checksum = ~currentsum & 0xff
+	return checksum
 
     def print_as_hex (self, msg_string):
         print ":".join("{:02x}".format(ord(c)) for c in msg_string)
