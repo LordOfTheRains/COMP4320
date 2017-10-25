@@ -88,28 +88,21 @@ void ServerUDP::run(){
         printf("Invalid response sent.\n");
       }else{
         printf("\n >>>> processing request:...\n");
-        ValidResponse *res = NULL;
-        string ipstr = resolveHostnames(clientReq.hostList, clientReq.tml-9);
+        ValidResponse res;
+        size_t ip_bytes = resolveHostnames(clientReq.hostList, clientReq.tml-9, res.ipAddresses);
         printf("ok.\n");
-        int packetSize = ipstr.length() + 9;
-        res = (struct ValidResponse *)malloc(sizeof(struct ValidResponse) + ipstr.length());
-        res->magicNumber = htonl(0x4a6f7921);
-        res->tml = htons(packetSize);
-        res->GID = 7;
-        res->checksum = 0;
-        res->requestID = clientReq.requestID;
-        memcpy(&res->ipAddresses, ipstr.c_str(), ipstr.length());
-        char datagram[packetSize] = {0};
-        memcpy(datagram, res, packetSize);
+        int packetSize = ip_bytes + 9;
+        res.magicNumber = htonl(0x4a6f7921);
+        res.tml = htons(packetSize);
+        res.GID = 7;
+        res.checksum = 0;
+        res.requestID = clientReq.requestID;
         printf("----------------Packet Content(%d bytes) --------------- \n", packetSize);
-        display(datagram, sizeof(datagram));
-        res->checksum = getChecksum(datagram, sizeof(datagram));
-        printf("\nsending response: %ld bytes\n",sizeof(res));
+        res.checksum = getChecksum(&res, packetSize);
+        printf("\nsending response: %ld bytes\n",ntohs(res.tml));
         //then send the response message back to sender;
-        sendto(this->sock,res,packetSize,0,(struct sockaddr *)&client,sizeof(client));
+        sendto(this->sock,&res,packetSize,0,(struct sockaddr *)&client,sizeof(client));
         printf("response sent.\n");
-        free(res);
-        res = NULL;
       }
 
 
@@ -165,73 +158,72 @@ ServerUDP::ValidResponse ServerUDP::getResponse(ClientRequest *req){
 
 //returns cmputed checksum
 char ServerUDP::getChecksum(void* msg, int num_bytes){
-  printf("\n--------- Compute Checksum --------- \n");
-  char* check_data = (char*)msg;
-  int currentByte = 0;
+    printf("\n--------- Compute Checksum --------- \n");
+    char* check_data = (char*)msg;
+    // do checksum magic
+    //assume the checksum is set to 0 prior to this function
+    //sum all bytes
+    int currentByte = 0;
   while (currentByte < num_bytes){
     printf("%2x: ",  check_data[currentByte]);
     currentByte++;
   }
-  // do checksum magic
-	//assume the checksum is set to 0 prior to this function
-	//sum all bytes
-	int currentSum = 0;
-	for(int i = 0; i < num_bytes; i++){
-		currentSum += check_data[i];
-		//handle carry
-		if(currentSum > 255){
-			currentSum = currentSum - 256 + 1;
-		}
-	}
-	//print sum
-	printf("\nSum result: %d\n", currentSum);
-
-	//bitwise one complement of sum
-	unsigned int compSum = (unsigned int) ~currentSum & 0xff;
-	char finalSum = (char) compSum;
-  printf("checksum: %2x: ",  finalSum);
-  printf("\n--------- Compute Checksum --------- \n");
-  return finalSum;
+    int currentSum = 0;
+    for(int i = 0; i < num_bytes; i++){
+    	currentSum += check_data[i];
+    	//handle carry
+    	if(currentSum > 255){
+    		currentSum = currentSum - 256 + 1;
+    	}
+    }
+    //print sum
+    printf("\nSum result: %d\n", currentSum);
+    //bitwise one complement of sum
+    unsigned int compSum = (unsigned int) ~currentSum & 0xff;
+    char finalSum = (char) compSum;
+    printf("checksum: %2x: ",  finalSum);
+    printf("\n--------- Compute Checksum --------- \n");
+    return finalSum;
 }
 //return a byte?string of ip address from a string of hosts
 //input might be: "10google.com12facebook.com"
-string ServerUDP::resolveHostnames(char* msg, int num_bytes){
+size_t ServerUDP::resolveHostnames(char* msg, int num_bytes, void* container){
   printf("\n---------resolving host names-----------\n");
   int currentByte = 0;
+  int total_bytes = 0;
+  int num_ips = 0;
+  uint32_t ips[50] = {0};
   while (currentByte < num_bytes){
-
       int host_size = 0;
       memcpy(&host_size, &msg[currentByte], 1);
       printf("current host_size is: %d: \n", host_size);
       char hostname[host_size+1];
       memcpy(&hostname, &msg[currentByte+1], host_size);
-      display(hostname, host_size);
-      //TODO
-      // do host name stuiff here, ref to fake google example below
-      //gethostbyname takes a nullterminating char*, so take the bytes out and
-      // add null terminating byte to the end before passing in to get the host name out.
-      //the result ip needs to be consective hex bytes
-
+      hostname[host_size] = '\0'; //null terminating the string
+      //display(hostname, sizeof(hostname));
+      struct hostent *hp = gethostbyname(hostname);
+      struct in_addr *ip_addr;
+        if (hp == NULL) {
+           printf("gethostbyname() failed\n");
+        } else {
+           printf("%s = ", hp->h_name);
+           if ( hp -> h_addr_list[0] != NULL) {
+               ip_addr = ( struct in_addr*)( hp -> h_addr_list[0]);
+               char* ip = inet_ntoa( *( struct in_addr*)( hp -> h_addr_list[0]));
+               ips[num_ips] = ip_addr->s_addr;
+               printf("%8x = ", ips[num_ips]);
+               printf( "[%s]\n",ip );
+               num_ips++;
+               total_bytes+=4;
+           }
+        }
       currentByte+= host_size+1;
   }
-  string fakename= "google.com";
-  struct hostent *hp = gethostbyname(fakename.c_str());
-  struct in_addr *ip_addr;
-    if (hp == NULL) {
-       printf("gethostbyname() failed\n");
-    } else {
-       printf("%s = ", hp->h_name);
-       if ( hp -> h_addr_list[0] != NULL) {
-           ip_addr = ( struct in_addr*)( hp -> h_addr_list[0]);
-           char* ip = inet_ntoa( *( struct in_addr*)( hp -> h_addr_list[0]));
-           printf("%8x \n", ip_addr->s_addr);
-           printf( "%s -",ip );
-       }
-       printf("\n");
-    }
-
-      printf("\n---------host names resolved--------------\n");
-  return "hello, my name is lab 2, can you hear me";
+  printf("total_bytes: %d\n",total_bytes);
+  memcpy(container, &ips, total_bytes);
+  getChecksum(&ips, total_bytes);
+  printf("\n---------host names resolved--------------\n");
+  return total_bytes;
 }
 
 

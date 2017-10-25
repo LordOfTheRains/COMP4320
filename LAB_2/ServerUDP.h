@@ -53,7 +53,7 @@ class ServerUDP {
     void processRaw(size_t num_bytes, struct ClientRequest* result);
     ValidResponse getResponse(ClientRequest *req);
     char getChecksum(void* msg, int num_bytes);
-    string resolveHostnames(char* msg, int num_bytes);
+    size_t resolveHostnames(char* msg, int num_bytes, void* container);
     unsigned long toBinary(string msg);
     void display(char *Buffer, int length);
 };
