@@ -62,7 +62,8 @@ void ServerUDP::run(){
 
     printf("Got a datagram from %s port %d\n",
            inet_ntoa(client.sin_addr), ntohs(client.sin_port));
-    printf("Magic: %08x\nTML: %04x \n GID: %2x\nchecksum: %2x\nrequestID: %2x\n",
+    printf("-----Unadjusted byte order packet content-----\n");
+    printf("Magic: %08x\nTML: %04x \nGID: %2x\nchecksum: %2x\nrequestID: %2x\n",
                                     clientReq.magicNumber,
                                     clientReq.tml,
                                     clientReq.GID,
@@ -80,7 +81,7 @@ void ServerUDP::run(){
         resp.tml = htons(9);
         printf("tml %d BYTES\n",num_byte);
         resp.GID = 7;
-        resp.checksum = 0;
+        resp.checksum = 0x0;
         resp.errorCode = clientReq.error;
         printf("----------------Invalid Response Content (%d bytes)---------------\n", 9);
         resp.checksum = getChecksum(&resp, sizeof(resp));
@@ -95,10 +96,13 @@ void ServerUDP::run(){
         res.magicNumber = htonl(0x4a6f7921);
         res.tml = htons(packetSize);
         res.GID = 7;
-        res.checksum = 0;
+        res.checksum = 0x0;
         res.requestID = clientReq.requestID;
         printf("----------------Packet Content(%d bytes) --------------- \n", packetSize);
         res.checksum = getChecksum(&res, packetSize);
+        for(int j = 0; j < packetSize; ++j)
+          printf("%02x ", ((uint8_t*) &res)[j]);
+        printf("checking checksum: %02x", getChecksum(&res, packetSize));
         printf("\nsending response: %ld bytes\n",ntohs(res.tml));
         //then send the response message back to sender;
         sendto(this->sock,&res,packetSize,0,(struct sockaddr *)&client,sizeof(client));
@@ -116,14 +120,18 @@ void ServerUDP::processRaw(size_t num_bytes,struct ClientRequest* result){
   result->magicNumber = ntohl(result->magicNumber);
   result->tml = ntohs(result->tml);
   result->error = 0b0000;
+  printf("------ Byte order adjusted packet content------------- \n");
+  printf("Magic: %08x\nTML: %04x \nGID: %2x\nchecksum: %2x\nrequestID: %2x\n",
+                                  result->magicNumber,
+                                  result->tml,
+                                  result->GID,
+                                  result->checksum,
+                                  result->requestID);
   if (result->magicNumber != 0x4a6f7921){
       result->error = result->error | 0b0001;
       printf("magic number error \n");
   }
-  char checksum = result->checksum;
-  printf("checksum: %x2", checksum);
-  result->checksum = 0;
-  if ( checksum != getChecksum(result, int(num_bytes)) ){
+  if (getChecksum(result, int(num_bytes)) != 0){
       result->error = result->error | 0b0100;
       printf("checksum error \n");
   }
@@ -131,13 +139,8 @@ void ServerUDP::processRaw(size_t num_bytes,struct ClientRequest* result){
       result->error = result->error | 0b0001;
       printf("tml error \n");
   }
-  result->checksum = checksum;
-  printf("Magic: %08x\nTML: %04x \n GID: %2x\nchecksum: %2x\nrequestID: %2x\n",
-                                  result->magicNumber,
-                                  result->tml,
-                                  result->GID,
-                                  result->checksum,
-                                  result->requestID);
+
+
   printf("\n------------- parsing raw data completed ---------------------\n");
   return;
 }
@@ -158,7 +161,7 @@ ServerUDP::ValidResponse ServerUDP::getResponse(ClientRequest *req){
 }
 
 //returns cmputed checksum
-char ServerUDP::getChecksum(void* msg, int num_bytes){
+signed char ServerUDP::getChecksum(void* msg, int num_bytes){
     printf("\n--------- Compute Checksum --------- \n");
     char* check_data = (char*)msg;
     // do checksum magic
@@ -180,10 +183,10 @@ char ServerUDP::getChecksum(void* msg, int num_bytes){
     //print sum
     printf("\nSum result: %d\n", currentSum);
     //bitwise one complement of sum
-    unsigned int compSum = (unsigned int) ~currentSum & 0xff;
-    char finalSum = (char) compSum;
+    int compSum = (int) ~currentSum & 0xff;
+    signed char finalSum = (signed char) compSum;
     printf("checksum: %2x: ",  finalSum);
-    printf("\n--------- Compute Checksum --------- \n");
+    printf("\n--------- Compute Checksum completed --------- \n");
     return finalSum;
 }
 //return a byte?string of ip address from a string of hosts
@@ -221,8 +224,8 @@ size_t ServerUDP::resolveHostnames(char* msg, int num_bytes, void* container){
       currentByte+= host_size+1;
   }
   printf("total_bytes: %d\n",total_bytes);
-  memcpy(container, &ips, total_bytes);
-  getChecksum(&ips, total_bytes);
+  memcpy(container, &ips, total_bytes);int j;
+
   printf("\n---------host names resolved--------------\n");
   return total_bytes;
 }

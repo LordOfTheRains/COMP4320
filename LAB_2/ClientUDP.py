@@ -17,11 +17,10 @@ class ClientUDP:
             req_id = int(req_id)
             if req_id > -1 and req_id < 128:
                 server_msg = self.get_packed_message(req_id, hosts)
-                server_response  = self.get_response(server_msg)
-                if server_response == 0:
-			return
-		#server_response  = "fakenews"
-                magic, tml, GID, checksum, rid, ips = self.unpack_response(server_response)
+                ip_bytes  = self.get_response(server_msg)
+                if ip_bytes != -1:
+                    #parse ip and print it off.
+                    print ([hex(ord(c)) for c in ip_bytes])
             else:
                 print ("Request ID must be between [0-255]")
                 return
@@ -40,43 +39,38 @@ class ClientUDP:
 
 
     def get_response(self, msg):
-
-        invalid = 1
-	trials = 0
-	while invalid and trials < 7:
-	    trials = trials + 1
-	    #print(self.server_addr)
+        valid_response = False
+    	trials = 0
+    	while not valid_response and trials < 7:
+    	    trials = trials + 1
+    	    #print(self.server_addr)
             self.sock.sendto(msg,self.server_addr)
             #print >>sys.stderr, 'waiting for server response'
             data, server = self.sock.recvfrom(4096)
-            print("server raw response")
+            print("server raw response:")
             self.print_as_hex(data)
-	
-	    if len(data) == 7 :
-		magic, tml, GID, checksum, bec = self.unpack_invalid_response(data) 
-		print("Validate response: received error code from server. Retransmitting")
-	    elif len(data) < 9:
-                #invalid response
-		print("Validate response: received invalid response. Retransmitting")
-	    elif len(data) > 9:
-	        magic, tml, GID, checksum, rid, ips = self.unpack_response(data)
-         	check = self.get_checksum(data, tml)
-		print("Validate response check: ")
-		print(check)
-		if check == 255:
-		    invalid = 0
-		else: 
-		    print("Validate response: received invalid response. Retransmitting")
-	
-	if invalid and trials == 7: 
-	     print("No  valid response after 7 trials.")
-	     return 0 
-		
-        magic, tml, GID, checksum, rid, ips = self.unpack_response(data)
-        print("server packed response")
-        self.print_as_hex(data)
+            if len(data) == 9 :
+                magic, tml, GID, checksum, bec = self.unpack_invalid_response(data)
+                print("Validate response: received error code from server. Retransmitting")
+            elif len(data) < 9:
+                print("Validate response: length too short. Retransmitting")
+            elif len(data) > 9:
+                print("Validating response ... ")
+                magic, tml, GID, checksum, rid, ips = self.unpack_response(data)
 
-        return data
+                # if you calculate checksum on the data including the checksum,
+                # you should get 0 -> correct data.
+                if int(self.get_checksum(data, tml)) == 0:
+                    valid_response = True
+                    return ips
+                else:
+                    print("[checksum error] - computed checksum: ")
+                    print(hex(self.get_checksum(data, tml)))
+            else:
+                print("Validate response: received invalid response. Retransmitting")
+        if not valid_response and trials == 7:
+    	     print("No  valid response after 7 trials.")
+    	     return -1
 
     '''
     server response format: for valid request
@@ -96,11 +90,11 @@ class ClientUDP:
     '''
 
     def unpack_response(self, data):
-        print(len(data))
+        #print(len(data))
         if len(data) > 9:
             magic, tml, GID, checksum, rid= struct.unpack_from("!LHBBB", data[0:])
             response_size = tml - 9
-            unpack_f = "!LHBBB" + str(response_size)+ "s"
+            unpack_f = "!LHBBB" + str(response_size)+ "p"
             print (unpack_f)
             magic, tml, GID, checksum, rid, ips= struct.unpack_from(unpack_f, data[0:])
             print ("Magic Number:")
@@ -114,15 +108,16 @@ class ClientUDP:
             print ("rid:")
             print(hex(rid))
             print ("ips:")
-            print (ips)
+            self.print_as_hex(ips)
             return magic, tml, GID, checksum, rid, ips
-        return 0, 0, 0, 0, 0, 0
+        else:
+            return 0, 0, 0, 0, 0, 0
 
     def unpack_invalid_response(self, data):
-	print(len(data))
-	magic, tml, GID, checksum, bec = struct.unpack_from("!LHBBB", data[0:])
-	print("-------Invalid Response-------")
-	print ("Magic Number:")
+        print(len(data))
+        magic, tml, GID, checksum, bec = struct.unpack_from("!LHBBB", data[0:])
+        print("-------Invalid Response-------")
+        print ("Magic Number:")
         print (hex(magic))
         print ("tml:")
         print(hex(tml))
@@ -132,7 +127,7 @@ class ClientUDP:
         print(hex(checksum))
         print ("bec:")
         print(hex(bec))
-	return magic, tml, GID, checksum, bec 
+        return magic, tml, GID, checksum, bec
 
     '''
     request format: for valid request
@@ -169,34 +164,36 @@ class ClientUDP:
         checksum = 0 # set to zero to compute
 
         header = struct.pack("!IHBBB",magic, tml, GID, checksum, req_id)
-	server_msg = header + hosts_packed
-
-	checksum = self.get_checksum(server_msg, tml) #compute checksum then repack
-
-	header = struct.pack("!IHBBB",magic, tml, GID, checksum, req_id)
-	server_msg = header + hosts_packed
+        server_msg = header + hosts_packed
+        checksum = self.get_checksum(server_msg, tml) #compute checksum then repack
+        header = struct.pack("!IHBBB",magic, tml, GID, checksum, req_id)
+        server_msg = header + hosts_packed
 
         print ('---- server message ----\n')
         self.print_as_hex(server_msg)
         return server_msg
 
     def get_checksum(self, msg, tml):
+        print(tml);
+        print ('---- Computing Checksum ----\n')
         #TODO verify checksum is calculated correctly
+
+        print ([hex(ord(c)) for c in msg])
         currentsum = 0;
         array = bytearray(msg)
+
+        print("sum of byte array")
+        print(hex(sum(array)))
         for x in range(0, tml):
-            currentsum += int(array[x]);
+            currentsum += array[x];
             if currentsum > 255:
                 currentsum = currentsum - 256 + 1
-
-	checksum = ~currentsum & 0xff
-	return checksum
+        print("returning checksum: ")
+        print(hex(~currentsum & 0xff))
+        return (~currentsum & 0xff)
 
     def print_as_hex (self, msg_string):
         print ":".join("{:02x}".format(ord(c)) for c in msg_string)
-
-    def validate_response(self, server_msg):
-	magic, tml, GID, checksum, rid, ips = self.unpack_response(server_msg)
 
 #python ClientUDP.py 127.0.0.0 80
 

@@ -23,7 +23,7 @@ class ServerUDP {
       uint32_t magicNumber;
       uint16_t tml;
       unsigned char GID;
-      unsigned char checksum;
+      signed char checksum;
       unsigned char requestID;
       char hostList[4096];
       unsigned char error;
@@ -33,16 +33,16 @@ class ServerUDP {
         uint32_t  magicNumber;
         uint16_t  tml;
         unsigned char GID;
-        unsigned char checksum;
+        signed char checksum;
         unsigned char requestID;
-    	char ipAddresses[4096];
+    	char ipAddresses[4096] = {0};
     } __attribute__((__packed__));
 
     struct InvalidResponse{
         uint32_t  magicNumber;
         uint16_t tml;
         unsigned char GID;
-        unsigned char checksum;
+        signed char checksum;
         unsigned char errorCode;
     } __attribute__((__packed__));
   private:
@@ -52,7 +52,7 @@ class ServerUDP {
 
     void processRaw(size_t num_bytes, struct ClientRequest* result);
     ValidResponse getResponse(ClientRequest *req);
-    char getChecksum(void* msg, int num_bytes);
+    signed char getChecksum(void* msg, int num_bytes);
     size_t resolveHostnames(char* msg, int num_bytes, void* container);
     unsigned long toBinary(string msg);
     void display(char *Buffer, int length);
