@@ -206,7 +206,13 @@ string ServerUDP::resolveHostnames(char* msg, int num_bytes){
       char hostname[host_size+1];
       memcpy(&hostname, &msg[currentByte+1], host_size);
       display(hostname, host_size);
-      currentByte+= host_size-1;
+      //TODO
+      // do host name stuiff here, ref to fake google example below
+      //gethostbyname takes a nullterminating char*, so take the bytes out and
+      // add null terminating byte to the end before passing in to get the host name out.
+      //the result ip needs to be consective hex bytes
+
+      currentByte+= host_size+1;
   }
   string fakename= "google.com";
   struct hostent *hp = gethostbyname(fakename.c_str());
@@ -223,11 +229,9 @@ string ServerUDP::resolveHostnames(char* msg, int num_bytes){
        }
        printf("\n");
     }
-  return "hello, my name is lab 2 can you hear me";
 
-
-  printf("\n---------host names resolved--------------\n");
-  return "hellno";
+      printf("\n---------host names resolved--------------\n");
+  return "hello, my name is lab 2, can you hear me";
 }
 
 
