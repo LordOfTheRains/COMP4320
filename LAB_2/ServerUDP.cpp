@@ -161,7 +161,7 @@ ServerUDP::ValidResponse ServerUDP::getResponse(ClientRequest *req){
 }
 
 //returns cmputed checksum
-signed char ServerUDP::getChecksum(void* msg, int num_bytes){
+unsigned char ServerUDP::getChecksum(void* msg, int num_bytes){
     printf("\n--------- Compute Checksum --------- \n");
     char* check_data = (char*)msg;
     // do checksum magic
@@ -174,7 +174,7 @@ signed char ServerUDP::getChecksum(void* msg, int num_bytes){
   }
     int currentSum = 0;
     for(int i = 0; i < num_bytes; i++){
-    	currentSum += check_data[i];
+    	currentSum += (unsigned char) check_data[i];
     	//handle carry
     	if(currentSum > 255){
     		currentSum = currentSum - 256 + 1;
@@ -184,7 +184,7 @@ signed char ServerUDP::getChecksum(void* msg, int num_bytes){
     printf("\nSum result: %d\n", currentSum);
     //bitwise one complement of sum
     int compSum = (int) ~currentSum & 0xff;
-    signed char finalSum = (signed char) compSum;
+    unsigned char finalSum = (unsigned char) compSum;
     printf("checksum: %2x: ",  finalSum);
     printf("\n--------- Compute Checksum completed --------- \n");
     return finalSum;
