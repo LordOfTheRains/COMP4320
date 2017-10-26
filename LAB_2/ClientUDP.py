@@ -94,7 +94,7 @@ class ClientUDP:
         if len(data) > 9:
             magic, tml, GID, checksum, rid= struct.unpack_from("!LHBBB", data[0:])
             response_size = tml - 9
-            unpack_f = "!LHBBB" + str(response_size)+ "p"
+            unpack_f = "!LHBBB" + str(response_size)+ "s"
             print (unpack_f)
             magic, tml, GID, checksum, rid, ips= struct.unpack_from(unpack_f, data[0:])
             print ("Magic Number:")
