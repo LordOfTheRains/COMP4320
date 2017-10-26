@@ -128,11 +128,11 @@ void ServerUDP::processRaw(size_t num_bytes,struct ClientRequest* result){
                                   result->checksum,
                                   result->requestID);
   if (result->magicNumber != 0x4a6f7921){
-      result->error = result->error | 0b0001;
+      result->error = result->error | 0b0100;
       printf("magic number error \n");
   }
   if (getChecksum(result, int(num_bytes)) != 0){
-      result->error = result->error | 0b0100;
+      result->error = result->error | 0b0010;
       printf("checksum error \n");
   }
   if (result->tml != num_bytes) {

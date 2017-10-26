@@ -70,6 +70,9 @@ class ClientUDP:
                 print("Validating response ... ")
                 magic, tml, GID, checksum, rid, ips = self.unpack_response(data)
 		
+		#check for the correct magic number
+		if magic != 0x4a6f7921:
+		    print("Validate response: Magic Number does not match. Retransmitting")	
                 # if you calculate checksum on the data including the checksum,
                 # you should get 0 -> correct data.
                 if int(self.get_checksum(data, tml)) == 0:
