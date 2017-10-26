@@ -21,6 +21,18 @@ class ClientUDP:
                 if ip_bytes != -1:
                     #parse ip and print it off.
                     print ([hex(ord(c)) for c in ip_bytes])
+		    for x in range(0, len(hosts)):
+			if x == 0:
+			    start = 0
+			else:	
+			    start = x*4 
+			byte1 = int(ord(ip_bytes[start]))
+			byte2 = int(ord(ip_bytes[start+1]))
+			byte3 = int(ord(ip_bytes[start+2]))
+			byte4 = int(ord(ip_bytes[start+3]))
+			ip_address = str(byte1) + "." + str(byte2) + "." + str(byte3) + "." + str(byte4)
+			print(hosts[x]),
+			print(ip_address)
             else:
                 print ("Request ID must be between [0-255]")
                 return
