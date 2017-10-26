@@ -57,7 +57,7 @@ class ClientUDP:
             elif len(data) > 9:
                 print("Validating response ... ")
                 magic, tml, GID, checksum, rid, ips = self.unpack_response(data)
-
+		
                 # if you calculate checksum on the data including the checksum,
                 # you should get 0 -> correct data.
                 if int(self.get_checksum(data, tml)) == 0:
