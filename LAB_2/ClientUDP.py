@@ -21,6 +21,18 @@ class ClientUDP:
                 if ip_bytes != -1:
                     #parse ip and print it off.
                     print ([hex(ord(c)) for c in ip_bytes])
+		    for x in range(0, len(hosts)):
+			if x == 0:
+			    start = 0
+			else:	
+			    start = x*4 
+			byte1 = int(ord(ip_bytes[start]))
+			byte2 = int(ord(ip_bytes[start+1]))
+			byte3 = int(ord(ip_bytes[start+2]))
+			byte4 = int(ord(ip_bytes[start+3]))
+			ip_address = str(byte1) + "." + str(byte2) + "." + str(byte3) + "." + str(byte4)
+			print(hosts[x]),
+			print(ip_address)
             else:
                 print ("Request ID must be between [0-255]")
                 return
@@ -57,7 +69,10 @@ class ClientUDP:
             elif len(data) > 9:
                 print("Validating response ... ")
                 magic, tml, GID, checksum, rid, ips = self.unpack_response(data)
-
+		
+		#check for the correct magic number
+		if magic != 0x4a6f7921:
+		    print("Validate response: Magic Number does not match. Retransmitting")	
                 # if you calculate checksum on the data including the checksum,
                 # you should get 0 -> correct data.
                 if int(self.get_checksum(data, tml)) == 0:
@@ -94,7 +109,7 @@ class ClientUDP:
         if len(data) > 9:
             magic, tml, GID, checksum, rid= struct.unpack_from("!LHBBB", data[0:])
             response_size = tml - 9
-            unpack_f = "!LHBBB" + str(response_size)+ "p"
+            unpack_f = "!LHBBB" + str(response_size)+ "s"
             print (unpack_f)
             magic, tml, GID, checksum, rid, ips= struct.unpack_from(unpack_f, data[0:])
             print ("Magic Number:")
