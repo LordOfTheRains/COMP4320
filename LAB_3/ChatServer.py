@@ -18,7 +18,7 @@ class ChatServer:
         # do initialization here
 
     def run(self):
-        print >>sys.stderr, 'Chat Server Waiting For Request...'
+        print 'Chat server listening for request...'
         while(1):
             data, server = self.sock.recvfrom(4096)
             print "Message: ", data
@@ -30,12 +30,9 @@ class ChatServer:
                 else:
                     self.register(client_ip, client_port)
                     response = self.get_registered_response()
-
             else:
                 response = self.get_invalid_response(error)
             self.sock.sendto(response,self.response)
-
-
 
     # returns 0 if request is valid
     # return error code if invalid
@@ -82,3 +79,15 @@ class ChatServer:
 
     def get_invalid_response(self, error_code):
         return "some error message"
+
+
+#python ChatServer.py 127.0.0.0 80
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+       print "usage: ChatServer.py [server ip] [server port]"
+       sys.exit()
+    server_ip = sys.argv[1]
+    port = sys.argv[2]
+    chat_server = ChatServer(server_ip,port)
+    chat_server.run()
