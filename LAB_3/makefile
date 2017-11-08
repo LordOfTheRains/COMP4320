@@ -1,27 +1,27 @@
-CC=g++ -g -std=c++11
+CC=gcc -g
 INC_DIR = ./
 CFLAGS=-c -Wall -I$(INC_DIR)
 DEPS = $(DEPS)*.h
 
-all: demo
+all: ChattyChat
 
 #	UDPServerDisplay.o ServerUDP.o
 
-demo: UDPServerDisplay.o ServerUDP.o
-	$(CC) UDPServerDisplay.o ServerUDP.o -o demo
+ChattyChat: ChattyChat.o ChatClient.o
+	$(CC) ChattyChat.o ChatClient.o -o ChattyChat
 
-UDPServerDisplay.o:  UDPServerDisplay.cpp ServerUDP.h
-	$(CC) $(CFLAGS) UDPServerDisplay.cpp
+ChattyChat.o:  ChattyChat.c ChatClient.h
+	$(CC) $(CFLAGS) ChattyChat.c
 
-ServerUDP.o: ServerUDP.cpp ServerUDP.h
-	$(CC) $(CFLAGS) ServerUDP.cpp
+ChatClient.o: ChatClient.c ChatClient.h
+	$(CC) $(CFLAGS) ChatClient.c
 
 clean:
 	    rm -rf *o all
 
-run_server:
-		make
-	   ./demo 10017
-
 run_client:
-	python ClientUDP.py 0.0.0.0 10017 120 google.com facebook.com jinx.com
+		make
+	   ./ChattyChat 0.0.0.0 10017 10001
+
+run_server:
+	python ChatServer.py 10017

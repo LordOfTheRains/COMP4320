@@ -7,9 +7,9 @@ import struct
 class ChatServer:
 
     # creates the udp port
-    def __init__(self, ip, port):
+    def __init__(self,port):
         try:
-            self.server_addr = (ip, int(port))
+            self.server_addr = ('0.0.0.0',int(port))
             self.sock = socket(AF_INET, SOCK_DGRAM)
             self.sock.bind(self.server_addr)
             self.client_waiting = False
@@ -84,10 +84,9 @@ class ChatServer:
 #python ChatServer.py 127.0.0.0 80
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-       print "usage: ChatServer.py [server ip] [server port]"
+    if len(sys.argv) != 2:
+       print "usage: ChatServer.py [server port]"
        sys.exit()
-    server_ip = sys.argv[1]
-    port = sys.argv[2]
-    chat_server = ChatServer(server_ip,port)
+    port = sys.argv[1]
+    chat_server = ChatServer(port)
     chat_server.run()
