@@ -41,6 +41,10 @@ int configureMySocket(ChatClient* client_ptr, int my_port);
 
 //configure socket used to connect to server
 int configureServerSocket(ChatClient* client_ptr, char* server_ip, int server_port);
+
+//sends chat request to udp server
+int sentChatRequest(ChatClient* client_ptr, ChatRequest* req, void* response);
+
 //connect to partner if server provides ip
 //if no partner then listen on own port
 void run(ChatClient* client_ptr);

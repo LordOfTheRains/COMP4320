@@ -7,6 +7,7 @@
 #include "ChatClient.h"
 
 
+
 int configure(ChatClient* client_ptr, char* server_ip, int server_port, int my_port){
     client_ptr->myPort = my_port;
     if(configureServerSocket(client_ptr,server_ip, server_port)){
@@ -50,20 +51,21 @@ int configureServerSocket(ChatClient* client_ptr, char* server_ip, int server_po
     return 0;
 }
 
-int sentChatRequest(ChatClient* client_ptr, ChatRequest* req, ServerResponse* response){
+int sentChatRequest(ChatClient* client_ptr, ChatRequest* req, void* response){
     int res_num_byte;
     if (sendto(client_ptr->serverSocket, req,
             sizeof(ChatRequest), 0, (struct sockaddr *) &(client_ptr->serverAddr),
-            sizeof(struct sockaddr_in)) < 0)
-    {
+            sizeof(struct sockaddr_in)) < 0) {
         perror("sendto failed");
         return 0;
     }
+    puts("waiting for server response\n");
     res_num_byte = recvfrom(client_ptr->serverSocket, response, sizeof(ServerResponse), 0,
                             (struct sockaddr *) &(client_ptr->serverAddr),
-                            sizeof(client_ptr->serverAddr));
+                            sizeof(struct sockaddr_in));
     if (res_num_byte < 0)
       perror("ERROR in recvfrom");
+    printf("%.*s",res_num_byte,response);
     return 0;
 }
 

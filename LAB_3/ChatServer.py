@@ -20,9 +20,9 @@ class ChatServer:
     def run(self):
         print 'Chat server listening for request...'
         while(1):
-            data, server = self.sock.recvfrom(4096)
+            data, client = self.sock.recvfrom(4096)
             print "Message: ", data
-            error = validate_request(data)
+            error = self.validate_request(data)
             if error == 0:
                 client_ip, client_port = self.unpack_request(data)
                 if self.client_waiting:
@@ -32,7 +32,7 @@ class ChatServer:
                     response = self.get_registered_response()
             else:
                 response = self.get_invalid_response(error)
-            self.sock.sendto(response,self.response)
+            self.sock.sendto(response,client)
 
     # returns 0 if request is valid
     # return error code if invalid
