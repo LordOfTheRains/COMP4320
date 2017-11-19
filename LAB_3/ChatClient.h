@@ -19,9 +19,11 @@ struct ServerResponse{
 
 
 struct ChatClient {
-    int myPort; //port it listens on for chat connection
+    struct sockaddr_in myAddr;
+    int myPort;
+    int mySocket; //port it listens on for chat connection
     int serverSocket; //Server socket
-    int serverPort; //server Port
+    struct sockaddr_in serverAddr;
     int partnerSocket;
     int partnerPort;
 };
@@ -34,6 +36,11 @@ typedef struct ChatClient ChatClient;
 //configure creates the udp connection to allow client to talk to server
 int configure(ChatClient* client_ptr, char* server_ip, int port, int my_port);
 
+//configure client tcp socket used to chat
+int configureMySocket(ChatClient* client_ptr, int my_port);
+
+//configure socket used to connect to server
+int configureServerSocket(ChatClient* client_ptr, char* server_ip, int server_port);
 //connect to partner if server provides ip
 //if no partner then listen on own port
 void run(ChatClient* client_ptr);

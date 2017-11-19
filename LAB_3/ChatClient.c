@@ -7,30 +7,72 @@
 #include "ChatClient.h"
 
 
-int configure(ChatClient* client_ptr, char* server_ip, int port, int my_port){
-    if ((client_ptr->serverSocket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-    	perror("cannot create socket");
-    }
-    client_ptr->serverPort = port;
+int configure(ChatClient* client_ptr, char* server_ip, int server_port, int my_port){
     client_ptr->myPort = my_port;
-    struct sockaddr_in server;
-    int err;
-    server.sin_family = AF_INET;
-    server.sin_port = htons(client_ptr->serverPort);
-    server.sin_addr.s_addr = htonl(INADDR_ANY);
-    err = bind(client_ptr->serverSocket, (struct sockaddr *) &server, sizeof(server));
-    if (err < 0){
-      puts("Could not bind socket\n");
-      return 1;
+    if(configureServerSocket(client_ptr,server_ip, server_port)){
+        perror("configure server socket failed");
+        return -1;
     }
-    //setup socket and bind
-    puts("server socket binded...\n");
+    if(configureMySocket(client_ptr, my_port)){
+        perror("configure my socket failed");
+        return -1;
+    }
+    return 0;
+}
+
+int configureMySocket(ChatClient* client_ptr, int my_port){
+    client_ptr->mySocket = socket(AF_INET, SOCK_STREAM, 0);
+    if(client_ptr->mySocket == -1){
+        printf("Error opening socket\n");
+        return -1;
+    }
+
+    client_ptr->myAddr.sin_port = htons(my_port);
+    client_ptr->myAddr.sin_addr.s_addr = 0;
+    client_ptr->myAddr.sin_addr.s_addr = INADDR_ANY;
+    client_ptr->myAddr.sin_family = AF_INET;
+    if(bind(client_ptr->mySocket, (struct sockaddr *) &(client_ptr->myAddr),
+        sizeof(client_ptr->myAddr) ) == -1) {
+        printf("Error binding my socket\n");
+        return -1;
+    }
+    return 0;
+}
+
+
+int configureServerSocket(ChatClient* client_ptr, char* server_ip, int server_port){
+    client_ptr->serverAddr.sin_family = AF_INET;
+    client_ptr->serverAddr.sin_port = htons(server_port);
+    client_ptr->serverAddr.sin_addr.s_addr = inet_addr(server_ip);
+    if ((client_ptr->serverSocket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("cannot create server socket");
+    }
+    return 0;
+}
+
+int sentChatRequest(ChatClient* client_ptr, ChatRequest* req, ServerResponse* response){
+    int res_num_byte;
+    if (sendto(client_ptr->serverSocket, req,
+            sizeof(ChatRequest), 0, (struct sockaddr *) &(client_ptr->serverAddr),
+            sizeof(struct sockaddr_in)) < 0)
+    {
+        perror("sendto failed");
+        return 0;
+    }
+    res_num_byte = recvfrom(client_ptr->serverSocket, response, sizeof(ServerResponse), 0,
+                            (struct sockaddr *) &(client_ptr->serverAddr),
+                            sizeof(client_ptr->serverAddr));
+    if (res_num_byte < 0)
+      perror("ERROR in recvfrom");
     return 0;
 }
 
 //connect to partner if server provides ip
 //if no partner then listen on own port
 void run(ChatClient* client_ptr){
+    ServerResponse response;
+    ChatRequest req = getChatRequest(client_ptr);
+    sentChatRequest(client_ptr,&req, &response);
     return;
 }
 
