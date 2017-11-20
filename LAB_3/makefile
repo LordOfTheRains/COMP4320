@@ -1,6 +1,6 @@
-CC=gcc -g
+CC=gcc -g -std=c99
 INC_DIR = ./
-CFLAGS=-c -Wall -I$(INC_DIR)
+CFLAGS=-c -Wall -lpthread -I$(INC_DIR)
 DEPS = $(DEPS)*.h
 
 all: ChattyChat
@@ -19,9 +19,13 @@ ChatClient.o: ChatClient.c ChatClient.h
 clean:
 	    rm -rf *o all
 
-run_client:
+run_client_a:
 		make
-	   ./ChattyChat 0.0.0.0 10017 10001
+	   ./ChattyChat 0.0.0.0 10017 10045
+
+run_client_b:
+	   		make
+	   	   ./ChattyChat 0.0.0.0 10017 10046
 
 run_server:
 	python ChatServer.py 10017
