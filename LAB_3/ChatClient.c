@@ -3,7 +3,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <pthread.h>
+#include <string.h>
 #include "ChatClient.h"
 
 
@@ -117,7 +117,7 @@ void waitToChat(ChatClient* client_ptr){
     int partnerSock;
     struct sockaddr_in partner;
     char myMsg[256],msg[256];
-
+    char killWord[] = "Bye Bye Birdie\n\0";
     if(configureMySocket(client_ptr)){
         perror("configure my socket failed");
         return;
@@ -134,16 +134,25 @@ void waitToChat(ChatClient* client_ptr){
             perror("Could not establish new connection to connecting partner\n");
             return;
         }
+        printf("A Chat Partner Has Connected!\n");
         while (1) {
-            int read = recv(partnerSock, &msg, 256, 0);
-            printf("New message: %s\n",msg);
-            printf("please enter message:\n");
+            recv(partnerSock, &msg, 256, 0);
+            printf("\n       New message: %s         \n",msg);
+            if (strcmp(msg, killWord) == 0){
+                printf("------------------Chat Ended---------------------\n");
+                return;
+            }
+            printf("please enter message: ");
         //scanf("%s", &name);  - deprecated
             fgets(myMsg,256,stdin);
             if (sendto(partnerSock, &myMsg,
                     sizeof(myMsg), 0, (struct sockaddr *) &(partner),
                     sizeof(struct sockaddr_in)) < 0) {
                 perror("sendto failed");
+                return;
+            }
+            if (strcmp(myMsg, killWord) == 0){
+                printf("------------------Chat Ended---------------------\n");
                 return;
             }
         }
@@ -156,9 +165,11 @@ void initiateChat(ChatClient* client_ptr,uint32_t partner_ip, int partner_port){
         perror("configure partner socket failed");
         return;
     }
+    printf("Connected to Chat Partner!\n");
     char myMsg[256], msg[256];
+    char killWord[] = "Bye Bye Birdie\n\0";
     while(1){
-        printf("please enter message:\n");
+        printf("Please enter message: ");
     //scanf("%s", &name);  - deprecated
         fgets(myMsg,256,stdin);
         if (sendto(client_ptr->partnerSocket, &myMsg,
@@ -167,8 +178,16 @@ void initiateChat(ChatClient* client_ptr,uint32_t partner_ip, int partner_port){
             perror("sendto failed");
             return;
         }
-        int read = recv(client_ptr->partnerSocket, &msg, 256, 0);
-        printf("New message: %s\n",msg);
+        if (strcmp(myMsg, killWord) == 0){
+            printf("------------------Chat Ended---------------------\n");
+            return;
+        }
+        recv(client_ptr->partnerSocket, &msg, 256, 0);
+        printf("\n        New message: %s       \n",msg);
+        if (strcmp(msg, killWord) == 0){
+            printf("------------------Chat Ended---------------------\n");
+            return;
+        }
     }
 }
 

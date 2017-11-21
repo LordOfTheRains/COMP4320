@@ -1,6 +1,6 @@
 CC=gcc -g -std=c99
 INC_DIR = ./
-CFLAGS=-c -Wall -lpthread -I$(INC_DIR)
+CFLAGS=-c -Wall -I$(INC_DIR)
 DEPS = $(DEPS)*.h
 
 all: ChattyChat
