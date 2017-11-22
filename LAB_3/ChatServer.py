@@ -37,7 +37,8 @@ class ChatServer:
     # returns 0 if request is valid
     # return error code if invalid
     def validate_request(self,data):
-        return True
+        if(len(data))
+	return True
 
 
     #unpacks the response to get ip and port info
