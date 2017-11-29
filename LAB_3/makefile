@@ -21,11 +21,11 @@ clean:
 
 run_client_a:
 		make
-	   ./ChattyChat 0.0.0.0 10017 10045
+	   ./ChattyChat 0.0.0.0 10045 10045
 
 run_client_b:
 	   		make
-	   	   ./ChattyChat 0.0.0.0 10017 10046
+	   	   ./ChattyChat 0.0.0.0 10045 10046
 
 run_server:
-	python ChatServer.py 10017
+	python ChatServer.py 10045
