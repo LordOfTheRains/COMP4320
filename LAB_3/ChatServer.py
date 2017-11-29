@@ -48,7 +48,7 @@ class ChatServer:
             magic,port, GID= struct.unpack_from("!LHB", data[0:])
             if magic != 0x4a6f7921:
                 error = error | 1
-            if self.portOutOfRange(port):
+            if self.portOutOfRange(port, GID):
                 error = error | 4
             print ("Magic Number:" + hex(magic))
             print ("port:" + hex(port))
@@ -59,8 +59,8 @@ class ChatServer:
             print ("data size not 7" + str(len(data)))
             return error, 0, 0
 
-    def portOutOfRange(self, portnum):
-        min_range = 10010+5*7
+    def portOutOfRange(self, portnum, GIDclient):
+        min_range = 10010+5*GIDclient
         max_range = min_range + 4
         return portnum > max_range or portnum < min_range
 
