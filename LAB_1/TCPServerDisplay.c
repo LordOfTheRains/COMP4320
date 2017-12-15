@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) // _M1
 		  printf("Server: received '%s'\n",buf);
 		  // _M2 End add
 
-		  displayBuffer(buf,numbytes); // _M3
+		  //displayBuffer(buf,numbytes); // _M3
 
 		  close(new_fd);
 		  exit(0);
